@@ -1,0 +1,955 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="dolanga1">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.0002293 0.011892 -0.009708"
+        rpy="0 0 0" />
+      <mass
+        value="16.726" />
+      <inertia
+        ixx="0.21656"
+        ixy="-0.001263"
+        ixz="-0.000286"
+        iyy="0.50598"
+        iyz="-0.000295"
+        izz="0.64318" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="LF_hip_link">
+    <inertial>
+      <origin
+        xyz="-0.012381 0.0015851 -1.8132E-06"
+        rpy="0 0 0" />
+      <mass
+        value="1.4744" />
+      <inertia
+        ixx="0.001354"
+        ixy="-3.3E-05"
+        ixz="-2E-06"
+        iyy="0.002287"
+        iyz="-4E-06"
+        izz="0.002177" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_hip_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.68627 0.60784 0.52941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_hip_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LF_hip_joint"
+    type="revolute">
+    <origin
+      xyz="0.298 0.0875 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="LF_hip_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-0.87"
+      upper="0.87"
+      effort="96"
+      velocity="23" />
+  </joint>
+  <link
+    name="LF_thigh_link">
+    <inertial>
+      <origin
+        xyz="-0.008151 -0.035895 -0.045087"
+        rpy="0 0 0" />
+      <mass
+        value="2.8226" />
+      <inertia
+        ixx="0.028969"
+        ixy="-0.000644"
+        ixz="0.002168"
+        iyy="0.027026"
+        iyz="-0.004637"
+        izz="0.006705" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_thigh_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_thigh_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LF_thigh_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.131 0"
+      rpy="0 0 0" />
+    <parent
+      link="LF_hip_link" />
+    <child
+      link="LF_thigh_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-0.94"
+      upper="4.69"
+      effort="156"
+      velocity="23" />
+  </joint>
+  <link
+    name="LF_calf_link">
+    <inertial>
+      <origin
+        xyz="0.013306 -0.00011048 -0.18849"
+        rpy="0 0 0" />
+      <mass
+        value="0.85029" />
+      <inertia
+        ixx="0.014443"
+        ixy="1E-06"
+        ixz="-0.000163"
+        iyy="0.014721"
+        iyz="-1.9E-05"
+        izz="0.000487" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_calf_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.86667 0.86667 0.8902 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_calf_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LF_calf_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.32"
+      rpy="0 0 0" />
+    <parent
+      link="LF_thigh_link" />
+    <child
+      link="LF_calf_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.82"
+      upper="-0.43"
+      effort="156"
+      velocity="14" />
+  </joint>
+  <link
+    name="LF_foot_link">
+    <inertial>
+      <origin
+        xyz="-0.007615 -3.1122E-07 -0.0082552"
+        rpy="0 0 0" />
+      <mass
+        value="0.11851" />
+      <inertia
+        ixx="4E-05"
+        ixy="-1.9367E-11"
+        ixz="-9E-06"
+        iyy="4.9E-05"
+        iyz="-2.9471E-10"
+        izz="4.1E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_foot_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LF_foot_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LF_foot_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 -0.31"
+      rpy="0 0 0" />
+    <parent
+      link="LF_calf_link" />
+    <child
+      link="LF_foot_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="RF_hip_link">
+    <inertial>
+      <origin
+        xyz="-0.012381 -0.0015851 1.7356E-06"
+        rpy="0 0 0" />
+      <mass
+        value="1.4744" />
+      <inertia
+        ixx="0.001354"
+        ixy="3.3E-05"
+        ixz="2E-06"
+        iyy="0.002287"
+        iyz="-4E-06"
+        izz="0.002177" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_hip_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.68627 0.60784 0.52941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_hip_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RF_hip_joint"
+    type="revolute">
+    <origin
+      xyz="0.298 -0.0875 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="RF_hip_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-0.87"
+      upper="0.87"
+      effort="96"
+      velocity="23" />
+  </joint>
+  <link
+    name="RF_thigh_link">
+    <inertial>
+      <origin
+        xyz="-0.0081543 0.035895 -0.045163"
+        rpy="0 0 0" />
+      <mass
+        value="2.8226" />
+      <inertia
+        ixx="0.028948"
+        ixy="0.000644"
+        ixz="0.002172"
+        iyy="0.027005"
+        iyz="0.004636"
+        izz="0.006705" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_thigh_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_thigh_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RF_thigh_joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.131 0"
+      rpy="0 0 0" />
+    <parent
+      link="RF_hip_link" />
+    <child
+      link="RF_thigh_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-0.94"
+      upper="4.69"
+      effort="156"
+      velocity="23" />
+  </joint>
+  <link
+    name="RF_calf_link">
+    <inertial>
+      <origin
+        xyz="0.013306 -0.00011048 -0.18849"
+        rpy="0 0 0" />
+      <mass
+        value="0.85029" />
+      <inertia
+        ixx="0.014443"
+        ixy="1E-06"
+        ixz="-0.000163"
+        iyy="0.014721"
+        iyz="-1.9E-05"
+        izz="0.000487" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_calf_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.86667 0.86667 0.8902 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_calf_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RF_calf_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.32"
+      rpy="0 0 0" />
+    <parent
+      link="RF_thigh_link" />
+    <child
+      link="RF_calf_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.82"
+      upper="-0.43"
+      effort="156"
+      velocity="14" />
+  </joint>
+  <link
+    name="RF_foot_link">
+    <inertial>
+      <origin
+        xyz="-0.007615 -3.1122E-07 -0.0082552"
+        rpy="0 0 0" />
+      <mass
+        value="0.11851" />
+      <inertia
+        ixx="4E-05"
+        ixy="-1.9367E-11"
+        ixz="-9E-06"
+        iyy="4.9E-05"
+        iyz="-2.9471E-10"
+        izz="4.1E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_foot_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RF_foot_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RF_foot_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 -0.31"
+      rpy="0 0 0" />
+    <parent
+      link="RF_calf_link" />
+    <child
+      link="RF_foot_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="LH_hip_link">
+    <inertial>
+      <origin
+        xyz="0.012381 0.0015851 1.7821E-06"
+        rpy="0 0 0" />
+      <mass
+        value="1.4744" />
+      <inertia
+        ixx="0.001354"
+        ixy="3.3E-05"
+        ixz="-2E-06"
+        iyy="0.002287"
+        iyz="4E-06"
+        izz="0.002177" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_hip_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.68627 0.60784 0.52941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_hip_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LH_hip_joint"
+    type="revolute">
+    <origin
+      xyz="-0.298 0.0875 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="LH_hip_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-0.87"
+      upper="0.87"
+      effort="96"
+      velocity="23" />
+  </joint>
+  <link
+    name="LH_thigh_link">
+    <inertial>
+      <origin
+        xyz="-0.008151 -0.035895 -0.045087"
+        rpy="0 0 0" />
+      <mass
+        value="2.8226" />
+      <inertia
+        ixx="0.028969"
+        ixy="-0.000644"
+        ixz="0.002168"
+        iyy="0.027026"
+        iyz="-0.004637"
+        izz="0.006705" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_thigh_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_thigh_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LH_thigh_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.131 0"
+      rpy="0 0 0" />
+    <parent
+      link="LH_hip_link" />
+    <child
+      link="LH_thigh_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-0.94"
+      upper="4.69"
+      effort="156"
+      velocity="23" />
+  </joint>
+  <link
+    name="LH_calf_link">
+    <inertial>
+      <origin
+        xyz="0.013306 -0.00011048 -0.18849"
+        rpy="0 0 0" />
+      <mass
+        value="0.85029" />
+      <inertia
+        ixx="0.014443"
+        ixy="1E-06"
+        ixz="-0.000163"
+        iyy="0.014721"
+        iyz="-1.9E-05"
+        izz="0.000487" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_calf_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.86667 0.86667 0.8902 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_calf_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LH_calf_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.32"
+      rpy="0 0 0" />
+    <parent
+      link="LH_thigh_link" />
+    <child
+      link="LH_calf_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.82"
+      upper="-0.43"
+      effort="156"
+      velocity="14" />
+  </joint>
+  <link
+    name="LH_foot_link">
+    <inertial>
+      <origin
+        xyz="-0.007615 -3.1122E-07 -0.0082552"
+        rpy="0 0 0" />
+      <mass
+        value="0.11851" />
+      <inertia
+        ixx="4E-05"
+        ixy="-1.9367E-11"
+        ixz="-9E-06"
+        iyy="4.9E-05"
+        iyz="-2.9471E-10"
+        izz="4.1E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_foot_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/LH_foot_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="LH_foot_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 -0.31"
+      rpy="0 0 0" />
+    <parent
+      link="LH_calf_link" />
+    <child
+      link="LH_foot_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="RH_hip_link">
+    <inertial>
+      <origin
+        xyz="0.012381 -0.0015851 -1.8132E-06"
+        rpy="0 0 0" />
+      <mass
+        value="1.4744" />
+      <inertia
+        ixx="0.001354"
+        ixy="-3.3E-05"
+        ixz="2E-06"
+        iyy="0.002287"
+        iyz="4E-06"
+        izz="0.002177" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_hip_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.68627 0.60784 0.52941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_hip_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RH_hip_joint"
+    type="revolute">
+    <origin
+      xyz="-0.298 -0.0875 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="RH_hip_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-0.87"
+      upper="0.87"
+      effort="96"
+      velocity="23" />
+  </joint>
+  <link
+    name="RH_thigh_link">
+    <inertial>
+      <origin
+        xyz="-0.0081543 0.035895 -0.045163"
+        rpy="0 0 0" />
+      <mass
+        value="2.8226" />
+      <inertia
+        ixx="0.028948"
+        ixy="0.000644"
+        ixz="0.002172"
+        iyy="0.027005"
+        iyz="0.004636"
+        izz="0.006705" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_thigh_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_thigh_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RH_thigh_joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.131 0"
+      rpy="0 0 0" />
+    <parent
+      link="RH_hip_link" />
+    <child
+      link="RH_thigh_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-0.94"
+      upper="4.69"
+      effort="156"
+      velocity="23" />
+  </joint>
+  <link
+    name="RH_calf_link">
+    <inertial>
+      <origin
+        xyz="0.013288 -0.0001104 -0.18848"
+        rpy="0 0 0" />
+      <mass
+        value="0.85029" />
+      <inertia
+        ixx="0.014439"
+        ixy="1E-06"
+        ixz="-0.000162"
+        iyy="0.014718"
+        iyz="-1.9E-05"
+        izz="0.000488" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_calf_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.86667 0.86667 0.8902 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_calf_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RH_calf_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.32"
+      rpy="0 0 0" />
+    <parent
+      link="RH_thigh_link" />
+    <child
+      link="RH_calf_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.82"
+      upper="-0.43"
+      effort="156"
+      velocity="14" />
+  </joint>
+  <link
+    name="RH_foot_link">
+    <inertial>
+      <origin
+        xyz="-0.0077457 3.0719E-07 -0.0081327"
+        rpy="0 0 0" />
+      <mass
+        value="0.11851" />
+      <inertia
+        ixx="4E-05"
+        ixy="2.9154E-10"
+        ixz="-9E-06"
+        iyy="4.9E-05"
+        iyz="3.4437E-11"
+        izz="4E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_foot_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolanga1/meshes/RH_foot_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="RH_foot_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 -0.31"
+      rpy="0 0 0" />
+    <parent
+      link="RH_calf_link" />
+    <child
+      link="RH_foot_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>
