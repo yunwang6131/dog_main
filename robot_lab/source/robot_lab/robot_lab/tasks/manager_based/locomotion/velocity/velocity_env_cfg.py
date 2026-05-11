@@ -27,6 +27,8 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import robot_lab.tasks.manager_based.locomotion.velocity.mdp as mdp
+from copy import deepcopy
+
 
 ##
 # Pre-defined configs
@@ -663,6 +665,14 @@ class TerminationsCfg:
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=""), "threshold": 1.0},
     )
 
+    bad_orientation = DoneTerm(
+        func=mdp.bad_orientation,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=""), "limit_angle": math.radians(80)},
+    )
+
+    base_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.2})
+    
+
 
 @configclass
 class CurriculumCfg:
@@ -741,3 +751,27 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
                 reward_attr = getattr(self.rewards, attr)
                 if not callable(reward_attr) and reward_attr.weight == 0:
                     setattr(self.rewards, attr, None)
+def add_history_term(self, term_name: str, history_len: int = 10):
+    """Create ``<term_name>_history`` ObsTerm from existing policy/critic terms."""
+
+    created_terms = []
+    history_term_name = f"{term_name}_history"
+
+    for obs_group_name in ("policy", "critic"):
+        obs_group = getattr(self.observations, obs_group_name, None)
+        if obs_group is None or not hasattr(obs_group, term_name):
+            continue
+
+        source_term = getattr(obs_group, term_name)
+        if source_term is None:
+            continue
+
+        history_term = deepcopy(source_term)
+        history_term.history_length = int(history_len)
+        setattr(obs_group, history_term_name, history_term)
+        created_terms.append(f"{obs_group_name}.{history_term_name}")
+
+    if not created_terms:
+        raise KeyError(f"{term_name} not found in policy/critic observations")
+
+    return created_terms

@@ -3,7 +3,9 @@
 
 from isaaclab.utils import configclass
 
-from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg
+from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, \
+    add_history_term
+import copy 
 
 ##
 # Pre-defined configs
@@ -31,8 +33,10 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         # ------------------------------Sence------------------------------
         self.scene.robot = DOLANGA1_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/" + self.base_link_name
-        self.scene.height_scanner_base.prim_path = "{ENV_REGEX_NS}/Robot/" + self.base_link_name
+        #self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/" + self.base_link_name
+        #self.scene.height_scanner_base.prim_path = "{ENV_REGEX_NS}/Robot/" + self.base_link_name
+        self.scene.height_scanner = None
+        self.scene.height_scanner_base = None
         self.scene.terrain.max_init_terrain_level = 0
 
         # ------------------------------Observations------------------------------
@@ -42,8 +46,25 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.observations.policy.joint_vel.scale = 0.05
         self.observations.policy.base_lin_vel = None
         self.observations.policy.height_scan = None
+        self.observations.critic.height_scan = None
         self.observations.policy.joint_pos.params["asset_cfg"].joint_names = self.joint_names
         self.observations.policy.joint_vel.params["asset_cfg"].joint_names = self.joint_names
+
+        # ------------------------------PPO+estimator------------------------------
+        # history_length = 10
+        # history_groups = [
+        #     'base_lin_vel',
+        #     'base_ang_vel',
+        #     'projected_gravity',
+        #     'joint_pos',
+        #     'joint_vel',
+        #     'velocity_commands',
+        #     'actions',
+        # ]
+
+        # for g in history_groups:
+        #     hist_name = add_history_term(self, g, history_length)
+        #     print("Created history term:", hist_name)
 
         # ------------------------------Actions------------------------------
         # reduce action scale
@@ -130,7 +151,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.feet_contact_without_cmd.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_stumble.weight = 0
         self.rewards.feet_stumble.params["sensor_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_slide.weight = 0
+        self.rewards.feet_slide.weight = -0.1
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_height.weight = 0
@@ -144,15 +165,17 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             ("LF_calf_link", "RH_calf_link"),
             ("RF_calf_link", "LH_calf_link"),
         )
-        self.rewards.upward.weight = 1.0
+        self.rewards.upward.weight = 0
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "Dolanga1RoughEnvCfg":
             self.disable_zero_weight_rewards()
 
         # ------------------------------Terminations------------------------------
-        # self.terminations.illegal_contact.params["sensor_cfg"].body_names = [self.base_link_name]
-        self.terminations.illegal_contact = None
+        self.terminations.illegal_contact.params["sensor_cfg"].body_names = [self.base_link_name]
+        # self.terminations.illegal_contact = None
+        self.terminations.bad_orientation.params["asset_cfg"].body_names = [self.base_link_name]
+        self.terminations.base_height = None
 
         # ------------------------------Curriculums------------------------------
         # self.curriculum.command_levels_lin_vel.params["range_multiplier"] = (0.2, 1.0)
