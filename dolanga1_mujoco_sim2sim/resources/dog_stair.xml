@@ -1,4 +1,4 @@
 <mujoco model="Lite3_stair">
-    <include file="/home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/Dolanga1.xml"/>
-    <include file="/home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/stair.xml"/>
+    <include file="Dolanga1.xml"/>
+    <include file="stair.xml"/>
 </mujoco>

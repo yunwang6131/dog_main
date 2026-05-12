@@ -20,7 +20,7 @@ from robot_lab.assets.dolanga import DOLANGA1_CFG  # isort: skip
 class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     base_link_name = "base_link"
     # Allow both explicit foot links and merged-fixed-joint fallback on calf links.
-    foot_link_name = ".*_(foot|calf)_link"
+    foot_link_name = ".*_foot_link"
     # fmt: off
     joint_names = [
         "LF_hip_joint", "LF_thigh_joint", "LF_calf_joint",
@@ -127,7 +127,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.is_terminated.weight = 0
 
         # Root penalties
-        self.rewards.lin_vel_z_l2.weight = -2.0
+        self.rewards.lin_vel_z_l2.weight = -3.0
         self.rewards.ang_vel_xy_l2.weight = -0.05
         self.rewards.flat_orientation_l2.weight = -1.0
         self.rewards.base_height_l2.weight = 0
@@ -173,10 +173,11 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.track_ang_vel_z_exp.weight = 1.5
 
         # Others
-        self.rewards.feet_air_time.weight = 0.2
+        self.rewards.feet_air_time.weight = 0.1
         self.rewards.feet_air_time.params["threshold"] = 0.3
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_contact.weight = 0
+        self.rewards.feet_contact.weight = -0.3
+        self.rewards.feet_contact.params["expect_contact_num"] = 2
         self.rewards.feet_contact.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_contact_without_cmd.weight = 0.1
         self.rewards.feet_contact_without_cmd.params["sensor_cfg"].body_names = [self.foot_link_name]
@@ -186,24 +187,24 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_height.weight = 0.5
-        self.rewards.feet_height.params["target_height"] = 0.12
+        self.rewards.feet_height.params["target_height"] = 0.1
         self.rewards.feet_height.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_height_body.weight = 0
         self.rewards.feet_height_body.params["target_height"] = -0.2
         self.rewards.feet_height_body.params["asset_cfg"].body_names = [self.foot_link_name]
-        # self.rewards.feet_gait.weight = 0.2
-        # self.rewards.feet_gait.params["synced_feet_pair_names"] = (
-        #     ("LF_calf_link", "RH_calf_link"),
-        #     ("RF_calf_link", "LH_calf_link"),
-        # )
+        self.rewards.feet_gait.weight = 0.3
+        self.rewards.feet_gait.params["synced_feet_pair_names"] = (
+            ("LF_calf_link", "RH_calf_link"),
+            ("RF_calf_link", "LH_calf_link"),
+        )
         self.rewards.no_fly = RewTerm(
             func=mdp.no_fly,
-            weight=-0.5,
+            weight=-1.0,
             params={
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=self.foot_link_name),
             },
         )
-        self.rewards.upward.weight = 0.2
+        self.rewards.upward.weight = 0.1
 
         # If the weight of rewards is 0, set rewards to None
         if self.__class__.__name__ == "Dolanga1RoughEnvCfg":

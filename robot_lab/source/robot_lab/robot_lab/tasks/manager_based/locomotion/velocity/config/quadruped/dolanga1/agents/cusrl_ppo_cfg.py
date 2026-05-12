@@ -9,7 +9,7 @@ from cusrl.environment.isaaclab import TrainerCfg
 
 @dataclass
 class Dolanga1RoughTrainerCfg(TrainerCfg):
-    max_iterations = 20000
+    max_iterations = 5000
     save_interval = 100
     experiment_name = "dolanga1_rough"
     agent_factory = cusrl.ActorCritic.Factory(

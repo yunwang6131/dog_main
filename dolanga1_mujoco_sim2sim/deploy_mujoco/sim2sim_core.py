@@ -12,7 +12,9 @@ class Sim2SimCfg:
     sim_duration: float = 120.0
     dt: float = 0.005
     decimation: int = 4
-    warmup_seconds: float = 2.0
+    history_len: int = 10
+    warmup_seconds: float = 0.0
+    init_base_height: float = 0.5
 
     mujoco_model_path: str = "path/to/scene.xml"
     onnx_path: str = "path/to/policy.onnx"
@@ -43,10 +45,10 @@ class Sim2SimCfg:
             [0.125, 0.25, 0.25, 0.125, 0.25, 0.25, 0.125, 0.25, 0.25, 0.125, 0.25, 0.25], dtype=np.float32
         )
     )
-    kp: np.ndarray = field(default_factory=lambda: np.array([40.0] * 12, dtype=np.float32))
-    kd: np.ndarray = field(default_factory=lambda: np.array([1.0] * 12, dtype=np.float32))
+    kp: np.ndarray = field(default_factory=lambda: np.array([100.0] * 12, dtype=np.float32))
+    kd: np.ndarray = field(default_factory=lambda: np.array([1.5] * 12, dtype=np.float32))
     tau_limit: np.ndarray = field(default_factory=lambda: np.array([96.0, 156.0, 156.0] * 4, dtype=np.float32))
-    cmd: np.ndarray = field(default_factory=lambda: np.array([0.3, 0.0, 0.0], dtype=np.float32))
+    cmd: np.ndarray = field(default_factory=lambda: np.array([1.0, 0.0, 0.0], dtype=np.float32))
 
 
 def quat_to_rotmat_wxyz(q_wxyz: np.ndarray) -> np.ndarray:
@@ -61,20 +63,22 @@ def quat_to_rotmat_wxyz(q_wxyz: np.ndarray) -> np.ndarray:
     )
 
 
-def build_actor_obs(
+def build_actor_obs_frame(
     base_ang_vel_body: np.ndarray,
     projected_gravity_body: np.ndarray,
     velocity_command: np.ndarray,
     joint_pos_rel: np.ndarray,
     joint_vel_rel: np.ndarray,
     last_action: np.ndarray,
-) -> np.ndarray:
-    obs = np.concatenate(
-        [base_ang_vel_body*0.25, projected_gravity_body, velocity_command, joint_pos_rel, joint_vel_rel*0.05, last_action], axis=0
-    ).astype(np.float32)
-    if obs.shape[0] != 45:
-        raise ValueError(f"Actor obs dim mismatch: {obs.shape[0]} != 45")
-    return obs
+) -> dict[str, np.ndarray]:
+    return {
+        "base_ang_vel": (base_ang_vel_body * 0.25).astype(np.float32),
+        "projected_gravity": projected_gravity_body.astype(np.float32),
+        "velocity_commands": velocity_command.astype(np.float32),
+        "joint_pos": joint_pos_rel.astype(np.float32),
+        "joint_vel": (joint_vel_rel * 0.05).astype(np.float32),
+        "actions": last_action.astype(np.float32),
+    }
 
 
 class Sim2SimRunner:
@@ -86,6 +90,7 @@ class Sim2SimRunner:
         self.sess = ort.InferenceSession(cfg.onnx_path, providers=["CPUExecutionProvider"])
         self.input_name = self.sess.get_inputs()[0].name
         self.output_name = self.sess.get_outputs()[0].name
+        self.input_shape = self.sess.get_inputs()[0].shape
 
         self.n_joints = len(self.cfg.joint_names)
         self.q_default = self._as_vector(self.cfg.q_default, "q_default")
@@ -96,14 +101,33 @@ class Sim2SimRunner:
         self.cmd = np.asarray(self.cfg.cmd, dtype=np.float32)
         if self.cmd.shape != (3,):
             raise ValueError(f"cmd must have shape (3,), got {self.cmd.shape}")
+        if self.cfg.history_len <= 0:
+            raise ValueError(f"history_len must be positive, got {self.cfg.history_len}")
 
-        # Policy was trained with 12 leg joints -> actor obs dimension is fixed at 45.
+        # Policy was trained with 12 leg joints and 10 history frames.
         if self.n_joints != 12:
             raise ValueError(f"Expected 12 joints for this policy, got {self.n_joints}: {self.cfg.joint_names}")
 
         self.qpos_idx, self.qvel_idx, self.joint_ids = self._build_joint_indices()
         self.actuator_idx = self._build_actuator_indices(self.joint_ids)
         self.last_action = np.zeros(self.n_joints, dtype=np.float32)
+        self.obs_history: dict[str, list[np.ndarray]] = {
+            "base_ang_vel": [],
+            "projected_gravity": [],
+            "velocity_commands": [],
+            "joint_pos": [],
+            "joint_vel": [],
+            "actions": [],
+        }
+        self._reset_to_training_init()
+        print(
+            "[INFO] sim2sim cfg: "
+            f"onnx_input={self.input_shape}, "
+            f"history_len={self.cfg.history_len}, "
+            f"warmup_seconds={self.cfg.warmup_seconds}, "
+            f"kp={self.kp[0]:.1f}, kd={self.kd[0]:.1f}, "
+            f"init_base_height={self.cfg.init_base_height:.3f}"
+        )
 
     def _as_vector(self, value: np.ndarray, name: str) -> np.ndarray:
         arr = np.asarray(value, dtype=np.float32)
@@ -148,6 +172,43 @@ class Sim2SimRunner:
             actuator_idx.append(int(candidates[0]))
         return np.asarray(actuator_idx, dtype=np.int32)
 
+    def _reset_to_training_init(self) -> None:
+        self.data.qpos[:] = 0.0
+        self.data.qvel[:] = 0.0
+        self.data.qpos[0:3] = np.array([0.0, 0.0, self.cfg.init_base_height], dtype=np.float32)
+        self.data.qpos[3:7] = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
+        self.data.qpos[self.qpos_idx] = self.q_default
+        mujoco.mj_forward(self.model, self.data)
+
+    def _update_obs_history(self, frame: dict[str, np.ndarray]) -> None:
+        for name, value in frame.items():
+            history = self.obs_history[name]
+            value = value.astype(np.float32)
+            while len(history) < self.cfg.history_len:
+                history.append(value.copy())
+            history.append(value.copy())
+            del history[: -self.cfg.history_len]
+
+    def _build_actor_obs(self) -> np.ndarray:
+        # Match training obs_groups order:
+        # base_ang_vel_history, projected_gravity_history, velocity_commands_history,
+        # joint_pos_history, joint_vel_history, actions_history.
+        obs = np.concatenate(
+            [
+                np.concatenate(self.obs_history["base_ang_vel"], axis=0),
+                np.concatenate(self.obs_history["projected_gravity"], axis=0),
+                np.concatenate(self.obs_history["velocity_commands"], axis=0),
+                np.concatenate(self.obs_history["joint_pos"], axis=0),
+                np.concatenate(self.obs_history["joint_vel"], axis=0),
+                np.concatenate(self.obs_history["actions"], axis=0),
+            ],
+            axis=0,
+        ).astype(np.float32)
+        expected_dim = 45 * self.cfg.history_len
+        if obs.shape[0] != expected_dim:
+            raise ValueError(f"Actor obs dim mismatch: {obs.shape[0]} != {expected_dim}")
+        return obs
+
     def step(self, step_id: int) -> None:
         q = self.data.qpos[self.qpos_idx].astype(np.float32)
         dq = self.data.qvel[self.qvel_idx].astype(np.float32)
@@ -161,10 +222,8 @@ class Sim2SimRunner:
         joint_vel_rel = dq
 
         warmup_steps = int(self.cfg.warmup_seconds / self.cfg.dt)
-        if step_id < warmup_steps:
-            action = np.zeros(self.n_joints, dtype=np.float32)
-        elif step_id % self.cfg.decimation == 0:
-            obs = build_actor_obs(
+        if step_id % self.cfg.decimation == 0:
+            frame = build_actor_obs_frame(
                 base_ang_vel_body,
                 projected_gravity_body,
                 self.cmd,
@@ -172,6 +231,12 @@ class Sim2SimRunner:
                 joint_vel_rel,
                 self.last_action,
             )
+            self._update_obs_history(frame)
+
+        if step_id < warmup_steps:
+            action = np.zeros(self.n_joints, dtype=np.float32)
+        elif step_id % self.cfg.decimation == 0:
+            obs = self._build_actor_obs()
             raw_action = self.sess.run(
                 [self.output_name],
                 {self.input_name: obs[None, :]}

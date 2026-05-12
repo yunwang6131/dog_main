@@ -13,7 +13,7 @@ class Dolanga1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     save_interval = 100
     experiment_name = "dolanga1_rough"
     obs_groups = {
-        "actor": [
+        "policy": [
             "base_ang_vel_history",
             "projected_gravity_history",
             "velocity_commands_history",
