@@ -685,3 +685,52 @@ def flat_orientation_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scen
     reward = torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)
     reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
+def no_fly(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg
+) -> torch.Tensor:
+    """
+    Penalize configurations where all feet are off the ground (no contact).
+
+    Returns:
+        A tensor of shape (num_envs,) where each entry is 1.0 if all feet are off the ground,
+        and 0.0 otherwise. This is intended to be multiplied by a negative scale when added
+        to the total reward.
+    """
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    contacts = contact_sensor.data.net_forces_w_history[:, :, sensor_cfg.body_ids, :].norm(dim=-1).max(dim=1)[0] > 1.0
+
+    num_feet_in_contact = contacts.sum(dim=1)  # [num_envs]
+    no_contact = (num_feet_in_contact == 0)    # bool, [num_envs]
+    reward = no_contact.float()                # [num_envs]
+    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0.0, 0.7) / 0.7
+    return reward
+
+
+def feet_gait(
+    env: ManagerBasedRLEnv,
+    period: float,
+    offset: list[float],
+    sensor_cfg: SceneEntityCfg,
+    threshold: float = 0.5,
+    command_name=None,
+) -> torch.Tensor:
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    is_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0
+
+    global_phase = ((env.episode_length_buf * env.step_dt) % period / period).unsqueeze(1)
+    phases = []
+    for offset_ in offset:
+        phase = (global_phase + offset_) % 1.0
+        phases.append(phase)
+    leg_phase = torch.cat(phases, dim=-1)
+
+    reward = torch.zeros(env.num_envs, dtype=torch.float, device=env.device)
+    for i in range(len(sensor_cfg.body_ids)):
+        is_stance = leg_phase[:, i] < threshold
+        reward += ~(is_stance ^ is_contact[:, i])
+
+    if command_name is not None:
+        cmd_norm = torch.norm(env.command_manager.get_command(command_name), dim=1)
+        reward *= cmd_norm > 0.1
+    return reward

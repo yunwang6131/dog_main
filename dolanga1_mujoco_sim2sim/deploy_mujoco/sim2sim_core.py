@@ -172,17 +172,48 @@ class Sim2SimRunner:
                 joint_vel_rel,
                 self.last_action,
             )
-            action = self.sess.run([self.output_name], {self.input_name: obs[None, :]})[0][0].astype(np.float32)
-            if action.shape != (self.n_joints,):
-                raise ValueError(f"Policy output shape mismatch: expected ({self.n_joints},), got {action.shape}")
+            raw_action = self.sess.run(
+                [self.output_name],
+                {self.input_name: obs[None, :]}
+            )[0][0].astype(np.float32)
+
+            if raw_action.shape != (self.n_joints,):
+                raise ValueError(
+                    f"Policy output shape mismatch: expected ({self.n_joints},), got {raw_action.shape}"
+                )
+
+            if not np.all(np.isfinite(raw_action)):
+                raise RuntimeError(f"Policy output NaN/Inf at step {step_id}: {raw_action}")
+
+            action = np.clip(raw_action, -10.0, 10.0)
+
+            # 注意：last_action 一定存 clip 后的 action
             self.last_action = action.copy()
         else:
             action = self.last_action
 
         q_target = self.q_default + action * self.action_scale
-        tau = self.kp * (q_target - q) + self.kd * (0.0 - dq)
-        tau = np.clip(tau, -self.tau_limit, self.tau_limit)
+
+        tau_raw = self.kp * (q_target - q) + self.kd * (0.0 - dq)
+
+        if not np.all(np.isfinite(tau_raw)):
+            raise RuntimeError(
+                f"tau_raw NaN/Inf at step {step_id}: "
+                f"action={action}, q_target={q_target}, q={q}, dq={dq}"
+            )
+
+        tau = np.clip(tau_raw, -self.tau_limit, self.tau_limit)
         self.data.ctrl[:] = 0.0
         self.data.ctrl[self.actuator_idx] = tau
+        if step_id % 100 == 0:
+            print(
+                f"[step {step_id}] "
+                f"z={self.data.qpos[2]:.3f}, "
+                f"gravity_xy={np.linalg.norm(projected_gravity_body[:2]):.3f}, "
+                f"ang_vel={np.linalg.norm(base_ang_vel_body):.3f}, "
+                f"action_max={np.max(np.abs(action)):.3f}, "
+                f"dq_max={np.max(np.abs(dq)):.3f}, "
+                f"tau_max={np.max(np.abs(tau)):.3f}, "
+                f"tau_sat={np.mean(np.abs(tau_raw) >= self.tau_limit):.2f}"
+            )
         mujoco.mj_step(self.model, self.data)
-

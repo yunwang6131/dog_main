@@ -1,0 +1,4 @@
+<mujoco model="Lite3_flat">
+    <include file="/home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/Dolanga1.xml"/>
+    <include file="/home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/flat.xml"/>
+</mujoco>

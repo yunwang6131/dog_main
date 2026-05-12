@@ -103,7 +103,7 @@ from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
 import robot_lab.tasks  # noqa: F401  # isort: skip
-from robot_lab.third_party.rsl_rl_est.runners.on_policy_runner import OnPolicyRunnerEst
+# from robot_lab.third_party.rsl_rl_est.runners.on_policy_runner import OnPolicyRunnerEst
 
 # import logger
 logger = logging.getLogger(__name__)
@@ -205,8 +205,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # create runner from rsl-rl
     if agent_cfg.class_name == "OnPolicyRunner":
         runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
-    elif agent_cfg.class_name == "OnPolicyRunnerEst":
-        runner = OnPolicyRunnerEst(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+    # elif agent_cfg.class_name == "OnPolicyRunnerEst":
+    #     runner = OnPolicyRunnerEst(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
     elif agent_cfg.class_name == "DistillationRunner":
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
     else:

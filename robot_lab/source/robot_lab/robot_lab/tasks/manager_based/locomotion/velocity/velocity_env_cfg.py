@@ -1,12 +1,14 @@
-# Copyright (c) 2024-2026 Ziqi Fan
+# Copyright (c) 2024-2025 Ziqi Fan
 # SPDX-License-Identifier: Apache-2.0
 
-# Copyright (c) 2022-2026, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import inspect
 import math
+import sys
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
@@ -20,20 +22,20 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns, RayCasterCameraCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import robot_lab.tasks.manager_based.locomotion.velocity.mdp as mdp
-from copy import deepcopy
-
 
 ##
 # Pre-defined configs
 ##
-from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
+# from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
+from robot_lab.terrains.config.rough import ROUGH_TERRAINS_CFG
+from copy import deepcopy
 
 
 ##
@@ -71,9 +73,9 @@ class MySceneCfg(InteractiveSceneCfg):
     # sensors
     height_scanner = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.2, 0.0, 20.0)),
         ray_alignment="yaw",
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.6]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
@@ -85,6 +87,80 @@ class MySceneCfg(InteractiveSceneCfg):
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
+    height_scanner_fl_foot = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/FL_FOOT",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 2.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=(0.2, 0.2)),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    height_scanner_fr_foot = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/FR_FOOT",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 2.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=(0.2, 0.2)),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    height_scanner_hl_foot = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/HL_FOOT",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 2.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=(0.2, 0.2)),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    height_scanner_hr_foot = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/HR_FOOT",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 2.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=(0.2, 0.2)),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+    # camera sensor
+    front_depth_camera = RayCasterCameraCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        mesh_prim_paths=["/World/ground"],
+        update_period=0.1,
+        offset=RayCasterCameraCfg.OffsetCfg(
+            pos=(0.25489, 0.0175, 0.07249),
+            rot=(0.4056, -0.5792, 0.5792, -0.4056),
+            convention="ros"
+        ),
+        data_types=["distance_to_image_plane"],
+        max_distance=2.0,
+        depth_clipping_behavior="max",
+        pattern_cfg=patterns.PinholeCameraPatternCfg(
+            focal_length=24.0,
+            horizontal_aperture=43.984,
+            vertical_aperture=18.4543,
+            height=60,
+            width=108,
+        ),
+    )
+    front_depth_camera_flip = RayCasterCameraCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        mesh_prim_paths=["/World/ground"],
+        update_period=0.1,
+        offset=RayCasterCameraCfg.OffsetCfg(
+            pos=(0.25489, -0.0175, 0.07249),
+            rot=(0.4056, -0.5792, 0.5792, -0.4056),
+            convention="ros"
+        ),
+        data_types=["distance_to_image_plane"],
+        max_distance=2.0,
+        depth_clipping_behavior="max",
+        pattern_cfg=patterns.PinholeCameraPatternCfg(
+            focal_length=24.0,
+            horizontal_aperture=43.984,
+            vertical_aperture=18.4543,
+            height=60,
+            width=108,
+        ),
+    )
+
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     # lights
     sky_light = AssetBaseCfg(
@@ -241,6 +317,7 @@ class ObservationsCfg:
             clip=(-1.0, 1.0),
             scale=1.0,
         )
+
         # joint_effort = ObsTerm(
         #     func=mdp.joint_effort,
         #     clip=(-100, 100),
@@ -251,9 +328,263 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = True
 
+    @configclass
+    class BaseAngVelWithNoiseCfg(ObsGroup):
+        base_ang_vel = ObsTerm(
+            func=mdp.base_ang_vel,
+            noise=Unoise(n_min=-0.2, n_max=0.2),
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class ProjectedGravityWithNoiseCfg(ObsGroup):
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity,
+            noise=Unoise(n_min=-0.05, n_max=0.05),
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class JointPosWithNoiseCfg(ObsGroup):
+        joint_pos_rel = ObsTerm(
+            func=mdp.joint_pos_rel,
+            params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*", preserve_order=True)},
+            noise=Unoise(n_min=-0.01, n_max=0.01),
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class JointVelWithNoiseCfg(ObsGroup):
+        joint_vel_rel = ObsTerm(
+            func=mdp.joint_vel_rel,
+            params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*", preserve_order=True)},
+            noise=Unoise(n_min=-1.5, n_max=1.5),
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class BaseLinVelCfg(ObsGroup):
+        base_lin_vel = ObsTerm(
+            func=mdp.base_lin_vel,
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class BaseAngVelCfg(ObsGroup):
+        base_ang_vel = ObsTerm(
+            func=mdp.base_ang_vel,
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class ProjectedGravityCfg(ObsGroup):
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity,
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class VelocityCommandsCfg(ObsGroup):
+        velocity_commands = ObsTerm(
+            func=mdp.generated_commands,
+            params={"command_name": "base_velocity"},
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class JointPosCfg(ObsGroup):
+        joint_pos_rel = ObsTerm(
+            func=mdp.joint_pos_rel,
+            params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*", preserve_order=True)},
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class JointVelCfg(ObsGroup):
+        joint_vel_rel = ObsTerm(
+            func=mdp.joint_vel_rel,
+            params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*", preserve_order=True)},
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class ActionsCfg(ObsGroup):
+        last_action = ObsTerm(
+            func=mdp.last_action,
+            clip=(-100.0, 100.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class HeightScanCfg(ObsGroup):
+        height_scan = ObsTerm(
+            func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+            clip=(-1.0, 1.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    # @configclass
+    # class ResetCfg(ObsGroup):
+    #     resets = ObsTerm(
+    #         func=mdp.compute_reset,
+    #     )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    # @configclass
+    # class FrontDepthCfg(ObsGroup):
+    #     front_depth_camera = ObsTerm(
+    #         func=mdp.image_with_history,
+    #         params={"sensor_cfg": SceneEntityCfg("front_depth_camera"),
+    #                 "data_type": "distance_to_image_plane",
+    #                 "img_shape": (60, 60),
+    #                 "clip_horizontal_from": 26,
+    #                 "clip_vertical_from": 0,
+    #                 "history_len": 2,
+    #                 "flip": False},
+    #         clip=(0.2, 2.0),
+    #         noise=Unoise(n_min=-0.05, n_max=0.05),
+    #         scale=1.0,
+    #     )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+            self.concatenate_dim = 0
+
+    # @configclass
+    # class FrontDepthFlipCfg(ObsGroup):
+    #     front_depth_camera_flip = ObsTerm(
+    #         func=mdp.image_with_history,
+    #         params={"sensor_cfg": SceneEntityCfg("front_depth_camera_flip"),
+    #                 "data_type": "distance_to_image_plane",
+    #                 "img_shape": (60, 60),
+    #                 "clip_horizontal_from": 26,
+    #                 "clip_vertical_from": 0,
+    #                 "history_len": 2,
+    #                 "flip": True},
+    #         clip=(0.2, 2.0),
+    #         noise=Unoise(n_min=-0.05, n_max=0.05),
+    #         scale=1.0,
+    #     )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+            self.concatenate_dim = 0
+
+    @configclass
+    class HeightScanFeetCfg(ObsGroup):
+        height_scanner_fl_foot = ObsTerm(
+            func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner_fl_foot")},
+            clip=(-1.0, 1.0),
+            scale=1.0,
+        )
+        height_scanner_fr_foot = ObsTerm(
+            func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner_fr_foot")},
+            clip=(-1.0, 1.0),
+            scale=1.0,
+        )
+        height_scanner_hl_foot = ObsTerm(
+            func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner_hl_foot")},
+            clip=(-1.0, 1.0),
+            scale=1.0,
+        )
+        height_scanner_hr_foot = ObsTerm(
+            func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner_hr_foot")},
+            clip=(-1.0, 1.0),
+            scale=1.0,
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
     # observation groups
-    policy: PolicyCfg = PolicyCfg()
-    critic: CriticCfg = CriticCfg()
+
+    # policy: PolicyCfg = PolicyCfg()
+    # critic: CriticCfg = CriticCfg()
+    # reset: ResetCfg = ResetCfg()
+    base_lin_vel: BaseLinVelCfg = BaseLinVelCfg()
+    base_ang_vel: BaseAngVelCfg = BaseAngVelCfg()
+    projected_gravity: ProjectedGravityCfg = ProjectedGravityCfg()
+    velocity_commands: VelocityCommandsCfg = VelocityCommandsCfg()
+    joint_pos: JointPosCfg = JointPosCfg()
+    joint_vel: JointVelCfg = JointVelCfg()
+    actions: ActionsCfg = ActionsCfg()
+    height_scan: HeightScanCfg = HeightScanCfg()
+
+    base_ang_vel_with_noise: BaseAngVelWithNoiseCfg = BaseAngVelWithNoiseCfg()
+    projected_gravity_with_noise: ProjectedGravityWithNoiseCfg = ProjectedGravityWithNoiseCfg()
+    joint_pos_with_noise: JointPosWithNoiseCfg = JointPosWithNoiseCfg()
+    joint_vel_with_noise: JointVelWithNoiseCfg = JointVelWithNoiseCfg()
+    # front_camera_depth: FrontDepthCfg = FrontDepthCfg()
+    # front_camera_depth_flip: FrontDepthFlipCfg = FrontDepthFlipCfg()
+    height_scan_feet: HeightScanFeetCfg = HeightScanFeetCfg()
 
 
 @configclass
@@ -499,6 +830,17 @@ class RewardsCfg:
         },
     )
 
+    gait = RewTerm(
+        func=mdp.feet_gait,
+        weight=0.0,
+        params={
+            "period": 0.8,
+            "offset": [0.0, 0.5],
+            "threshold": 0.55,
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*"),
+        },
+    )
     # Action penalties
     applied_torque_limits = RewTerm(
         func=mdp.applied_torque_limits,
@@ -506,8 +848,6 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*")},
     )
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=0.0)
-    # smoothness_1 = RewTerm(func=mdp.smoothness_1, weight=0.0)  # Same as action_rate_l2
-    # smoothness_2 = RewTerm(func=mdp.smoothness_2, weight=0.0)  # Unvaliable now
 
     # Contact sensor
     undesired_contacts = RewTerm(
@@ -606,7 +946,7 @@ class RewardsCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=""),
             "tanh_mult": 2.0,
-            "target_height": 0.05,
+            "target_height": 0.08,
             "command_name": "base_velocity",
         },
     )
@@ -632,16 +972,6 @@ class RewardsCfg:
         },
     )
 
-    # feet_distance_xy_exp = RewTerm(
-    #     func=mdp.feet_distance_xy_exp,
-    #     weight=0.0,
-    #     params={
-    #         "std": math.sqrt(0.25),
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=""),
-    #         "stance_length": float,
-    #         "stance_width": float,
-    #     },
-    # )
 
     upward = RewTerm(func=mdp.upward, weight=0.0)
 
@@ -671,7 +1001,6 @@ class TerminationsCfg:
     )
 
     base_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.2})
-    
 
 
 @configclass
@@ -727,7 +1056,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
         self.sim.physics_material = self.scene.terrain.physics_material
-        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
+        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2 ** 15
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.height_scanner is not None:
@@ -751,27 +1080,76 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
                 reward_attr = getattr(self.rewards, attr)
                 if not callable(reward_attr) and reward_attr.weight == 0:
                     setattr(self.rewards, attr, None)
-def add_history_term(self, term_name: str, history_len: int = 10):
-    """Create ``<term_name>_history`` ObsTerm from existing policy/critic terms."""
 
-    created_terms = []
-    history_term_name = f"{term_name}_history"
 
-    for obs_group_name in ("policy", "critic"):
-        obs_group = getattr(self.observations, obs_group_name, None)
-        if obs_group is None or not hasattr(obs_group, term_name):
-            continue
+def create_obsgroup_class(class_name, terms, enable_corruption=False, concatenate_terms=True):
+    """
+    Dynamically create and register a ObsGroup class based on the given configuration terms.
 
-        source_term = getattr(obs_group, term_name)
-        if source_term is None:
-            continue
+    :param class_name: Name of the configuration class.
+    :param terms: Configuration terms, a dictionary where keys are term names and values are term content.
+    :param enable_corruption: Whether to enable corruption for the observation group. Defaults to False.
+    :param concatenate_terms: Whether to concatenate the observation terms in the group. Defaults to True.
+    :return: The dynamically created class.
+    """
+    # Dynamically determine the module name
+    module_name = inspect.getmodule(inspect.currentframe()).__name__
 
-        history_term = deepcopy(source_term)
-        history_term.history_length = int(history_len)
-        setattr(obs_group, history_term_name, history_term)
-        created_terms.append(f"{obs_group_name}.{history_term_name}")
+    # Define the post-init function
+    def post_init_wrapper(self):
+        setattr(self, "enable_corruption", enable_corruption)
+        setattr(self, "concatenate_terms", concatenate_terms)
 
-    if not created_terms:
-        raise KeyError(f"{term_name} not found in policy/critic observations")
+    # Dynamically create the class using ObsGroup as the base class
+    terms["__post_init__"] = post_init_wrapper
+    dynamic_class = configclass(type(class_name, (ObsGroup,), terms))
 
-    return created_terms
+    # Custom serialization and deserialization
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+    # Add custom serialization methods to the class
+    dynamic_class.__getstate__ = __getstate__
+    dynamic_class.__setstate__ = __setstate__
+
+    # Place the class in the global namespace for accessibility
+    globals()[class_name] = dynamic_class
+
+    # Register the dynamic class in the module's dictionary
+    if module_name in sys.modules:
+        sys.modules[module_name].__dict__[class_name] = dynamic_class
+    else:
+        raise ImportError(f"Module {module_name} not found.")
+
+    # Return the class for external instantiation
+    return dynamic_class
+
+def add_history_term(self, group_name: str, history_len: int = 10):
+    """
+    动态创建一个 xxx_history group，并复制 xxx 的 ObsTerm 配置。
+    """
+
+    if not hasattr(self.observations, group_name):
+        raise KeyError(f"{group_name} not found in observations")
+
+    original_group = getattr(self.observations, group_name)
+    history_group = deepcopy(original_group)
+
+    history_group_name = group_name + "_history"
+
+    inner_name = [
+        n for n in history_group.__dict__.keys()
+        if not n.startswith("_")
+    ][-1]
+
+    term = getattr(history_group, inner_name)
+
+    # 强制 Python int
+    term.history_length = int(history_len)
+
+    setattr(self.observations, history_group_name, history_group)
+    return history_group_name

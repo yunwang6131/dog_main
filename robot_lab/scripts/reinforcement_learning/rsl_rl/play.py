@@ -131,10 +131,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         env_cfg.scene.terrain.terrain_generator.curriculum = False
 
     # disable randomization for play
-    env_cfg.observations.policy.enable_corruption = False
+    env_cfg.observations.base_lin_vel.enable_corruption = False
+    env_cfg.observations.base_ang_vel.enable_corruption = False
+    env_cfg.observations.projected_gravity.enable_corruption = False
+    env_cfg.observations.velocity_commands.enable_corruption = False
+    env_cfg.observations.joint_pos.enable_corruption = False
+    env_cfg.observations.joint_vel.enable_corruption = False
+    env_cfg.observations.actions.enable_corruption = False
     # remove random pushing
     env_cfg.events.randomize_apply_external_force_torque = None
-    env_cfg.events.push_robot = None
+    env_cfg.events.randomize_push_robot = None
     env_cfg.curriculum.command_levels_lin_vel = None
     env_cfg.curriculum.command_levels_ang_vel = None
 
@@ -148,7 +154,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             omega_z_sensitivity=env_cfg.commands.base_velocity.ranges.ang_vel_z[1],
         )
         controller = Se2Keyboard(config)
-        env_cfg.observations.policy.velocity_commands = ObsTerm(
+        env_cfg.observations.velocity_commands.velocity_commands = ObsTerm(
             func=lambda env: torch.tensor(controller.advance(), dtype=torch.float32).unsqueeze(0).to(env.device),
         )
 
