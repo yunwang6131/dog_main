@@ -1,6 +1,28 @@
+# Python
 __pycache__/
 *.pyc
+
+# Mujoco
 MUJOCO_LOG.TXT
-models/
+
+# Training outputs
 logs/
+outputs/
 wandb/
+
+# Models / checkpoints
+models/
+*.pt
+*.onnx
+
+# VSCode
+.vscode/
+
+# Isaac / cache
+*.usd
+*.usda
+*.usdc
+
+# OS
+.DS_Store
+Thumbs.db
