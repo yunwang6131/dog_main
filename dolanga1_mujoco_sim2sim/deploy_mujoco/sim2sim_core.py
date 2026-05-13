@@ -35,6 +35,22 @@ class Sim2SimCfg:
             "RH_calf_joint",
         ]
     )
+    joint_name_aliases: dict[str, str] = field(
+        default_factory=lambda: {
+            "LF_hip_joint": "LF_HAA",
+            "LF_thigh_joint": "LF_HFE",
+            "LF_calf_joint": "LF_KFE",
+            "RF_hip_joint": "RF_HAA",
+            "RF_thigh_joint": "RF_HFE",
+            "RF_calf_joint": "RF_KFE",
+            "LH_hip_joint": "LH_HAA",
+            "LH_thigh_joint": "LH_HFE",
+            "LH_calf_joint": "LH_KFE",
+            "RH_hip_joint": "RH_HAA",
+            "RH_thigh_joint": "RH_HFE",
+            "RH_calf_joint": "RH_KFE",
+        }
+    )
     q_default: np.ndarray = field(
         default_factory=lambda: np.array(
             [0.0, 0.8, -1.5, 0.0, 0.8, -1.5, 0.0, 0.8, -1.5, 0.0, 0.8, -1.5], dtype=np.float32
@@ -42,7 +58,7 @@ class Sim2SimCfg:
     )
     action_scale: np.ndarray = field(
         default_factory=lambda: np.array(
-            [0.125, 0.25, 0.25, 0.125, 0.25, 0.25, 0.125, 0.25, 0.25, 0.125, 0.25, 0.25], dtype=np.float32
+            [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25], dtype=np.float32
         )
     )
     kp: np.ndarray = field(default_factory=lambda: np.array([100.0] * 12, dtype=np.float32))
@@ -91,6 +107,7 @@ class Sim2SimRunner:
         self.input_name = self.sess.get_inputs()[0].name
         self.output_name = self.sess.get_outputs()[0].name
         self.input_shape = self.sess.get_inputs()[0].shape
+        self.gyro_sensor_slice = self._find_sensor_slice("imu_gyro", expected_dim=3)
 
         self.n_joints = len(self.cfg.joint_names)
         self.q_default = self._as_vector(self.cfg.q_default, "q_default")
@@ -135,20 +152,38 @@ class Sim2SimRunner:
             raise ValueError(f"{name} must have shape ({self.n_joints},), got {arr.shape}")
         return arr
 
+    def _resolve_joint_id(self, joint_name: str) -> tuple[int, str]:
+        joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
+        if joint_id >= 0:
+            return joint_id, joint_name
+
+        alias = self.cfg.joint_name_aliases.get(joint_name)
+        if alias is not None:
+            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, alias)
+            if joint_id >= 0:
+                return joint_id, alias
+
+        available = [
+            mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, i)
+            for i in range(self.model.njnt)
+        ]
+        raise ValueError(
+            f"Joint '{joint_name}' not found in model: {self.cfg.mujoco_model_path}. "
+            f"Available joints: {available}"
+        )
+
     def _build_joint_indices(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         qpos_idx: list[int] = []
         qvel_idx: list[int] = []
         joint_ids: list[int] = []
 
         for joint_name in self.cfg.joint_names:
-            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
-            if joint_id < 0:
-                raise ValueError(f"Joint '{joint_name}' not found in model: {self.cfg.mujoco_model_path}")
+            joint_id, model_joint_name = self._resolve_joint_id(joint_name)
 
             joint_type = int(self.model.jnt_type[joint_id])
             if joint_type not in (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE):
                 raise ValueError(
-                    f"Joint '{joint_name}' must be hinge/slide (1 DoF), got type={joint_type}"
+                    f"Joint '{model_joint_name}' must be hinge/slide (1 DoF), got type={joint_type}"
                 )
 
             qpos_idx.append(int(self.model.jnt_qposadr[joint_id]))
@@ -171,6 +206,25 @@ class Sim2SimRunner:
                 raise ValueError(f"Multiple actuators found for joint '{joint_name}': {candidates.tolist()}")
             actuator_idx.append(int(candidates[0]))
         return np.asarray(actuator_idx, dtype=np.int32)
+
+    def _find_sensor_slice(self, sensor_name: str, expected_dim: int) -> slice | None:
+        sensor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SENSOR, sensor_name)
+        if sensor_id < 0:
+            return None
+
+        sensor_dim = int(self.model.sensor_dim[sensor_id])
+        if sensor_dim != expected_dim:
+            raise ValueError(f"Sensor '{sensor_name}' must have dim={expected_dim}, got {sensor_dim}")
+
+        sensor_adr = int(self.model.sensor_adr[sensor_id])
+        return slice(sensor_adr, sensor_adr + sensor_dim)
+
+    def _read_base_ang_vel_body(self) -> np.ndarray:
+        if self.gyro_sensor_slice is not None:
+            return self.data.sensordata[self.gyro_sensor_slice].astype(np.float32)
+
+        # MuJoCo free-joint angular velocity is already in the body frame.
+        return self.data.qvel[3:6].astype(np.float32)
 
     def _reset_to_training_init(self) -> None:
         self.data.qpos[:] = 0.0
@@ -214,9 +268,8 @@ class Sim2SimRunner:
         dq = self.data.qvel[self.qvel_idx].astype(np.float32)
 
         base_quat_wxyz = self.data.qpos[3:7].astype(np.float32)
-        base_ang_vel_world = self.data.qvel[3:6].astype(np.float32)
         rot_bw = quat_to_rotmat_wxyz(base_quat_wxyz).T
-        base_ang_vel_body = rot_bw @ base_ang_vel_world
+        base_ang_vel_body = self._read_base_ang_vel_body()
         projected_gravity_body = rot_bw @ np.array([0.0, 0.0, -1.0], dtype=np.float32)
         joint_pos_rel = q - self.q_default
         joint_vel_rel = dq
