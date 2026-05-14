@@ -110,6 +110,35 @@ from rl_utils import camera_follow
 # PLACEHOLDER: Extension template (do not remove this comment)
 
 
+def export_dreamwaq_cenet_weights(runner, export_model_dir: str) -> None:
+    """Save CENet-only weights for MuJoCo sim2sim (encoder + v_est + latent mu heads).
+
+    ``policy.onnx`` / ``policy.pt`` from RSL-RL only contain the MLP tail; sim2sim loads ``cenet.pt`` alongside them.
+    """
+    actor = getattr(runner.alg, "actor", None)
+    if actor is None:
+        policy = getattr(runner.alg, "policy", None) or getattr(runner.alg, "actor_critic", None)
+        if policy is not None:
+            actor = getattr(policy, "actor", None)
+    if actor is None:
+        return
+    if not (
+        hasattr(actor, "encoder")
+        and hasattr(actor, "velocity_head")
+        and hasattr(actor, "latent_mu_head")
+    ):
+        return
+    os.makedirs(export_model_dir, exist_ok=True)
+    sd = actor.state_dict()
+    prefix = ("encoder.", "velocity_head.", "latent_mu_head.")
+    cenet_sd = {k: v.detach().cpu().clone() for k, v in sd.items() if k.startswith(prefix)}
+    if not cenet_sd:
+        return
+    path = os.path.join(export_model_dir, "cenet.pt")
+    torch.save({"cenet_state_dict": cenet_sd}, path)
+    print(f"[INFO] Exported DreamWaQ CENet weights to: {path}")
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Play with RSL-RL agent."""
@@ -225,6 +254,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         # use the new export functions for rsl-rl >= 4.0.0
         runner.export_policy_to_jit(path=export_model_dir, filename="policy.pt")
         runner.export_policy_to_onnx(path=export_model_dir, filename="policy.onnx")
+        export_dreamwaq_cenet_weights(runner, export_model_dir)
     else:
         # extract the neural network for rsl-rl < 4.0.0
         if version.parse(installed_version) >= version.parse("2.3.0"):
@@ -243,6 +273,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         # export to JIT and ONNX
         export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
         export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
+        export_dreamwaq_cenet_weights(runner, export_model_dir)
 
     dt = env.unwrapped.step_dt
 
