@@ -1,6 +1,5 @@
 # dolanga1_mujoco_sim2sim
 
-独立于 `robot_lab` 的 MuJoCo sim2sim 骨架工程。
 
 ## 目录结构
 
@@ -9,20 +8,18 @@
 - `deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py`: 可视化运行入口
 - `deploy_mujoco/configs/dolanga1.yaml`: 参数模板
 
+# 另外一套是跑dramwaq的，相互独立
+
 ## 运行示例
 
 在本目录执行：
-
+# 跑dreamwaq
 ```bash
-python deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
-  --load_model /path/to/scene.xml \
-  --policy /path/to/policy.onnx
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_dreamwaq_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/policy.onnx --cenet /home/sen/wy/dog_main/robot_lab/logs/rsl_rl/dolanga1_rough_dreamwaq/2026-05-13_17-33-33_initial/exported/cenet.pt
 ```
 
-## 注意
+# 跑PPO
+```bash
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml   --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_15-27-00_change_urdf/exported/policy.onnx
+```
 
-当前 `sim2sim_core.py` 仍有一处 `TODO`:
-
-- 关节 name 到 MuJoCo `qpos/qvel` 索引的稳健映射（现在是占位顺序映射）。
-
-建议下一步先完成该映射，再开始系统调参。
