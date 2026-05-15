@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
 
 import mujoco
 import numpy as np
 import onnxruntime as ort
+
+from deploy_mujoco.sim2sim_obs_corruption import (
+    Sim2SimPerturbCfg,
+    apply_motor_gain_scale,
+    corrupt_raw_proprio,
+    sample_encoder_biases,
+)
 
 
 @dataclass
@@ -65,6 +73,7 @@ class Sim2SimCfg:
     kd: np.ndarray = field(default_factory=lambda: np.array([1.5] * 12, dtype=np.float32))
     tau_limit: np.ndarray = field(default_factory=lambda: np.array([96.0, 156.0, 156.0] * 4, dtype=np.float32))
     cmd: np.ndarray = field(default_factory=lambda: np.array([1.0, 0.0, 0.0], dtype=np.float32))
+    perturb: Sim2SimPerturbCfg = field(default_factory=Sim2SimPerturbCfg)
 
 
 def quat_to_rotmat_wxyz(q_wxyz: np.ndarray) -> np.ndarray:
@@ -112,8 +121,12 @@ class Sim2SimRunner:
         self.n_joints = len(self.cfg.joint_names)
         self.q_default = self._as_vector(self.cfg.q_default, "q_default")
         self.action_scale = self._as_vector(self.cfg.action_scale, "action_scale")
+        self._rng = np.random.default_rng(self.cfg.perturb.seed)
         self.kp = self._as_vector(self.cfg.kp, "kp")
         self.kd = self._as_vector(self.cfg.kd, "kd")
+        self.kp, self.kd, self._motor_gain_scale = apply_motor_gain_scale(
+            self.kp, self.kd, self._rng, self.cfg.perturb.motor_gain_scale_range
+        )
         self.tau_limit = self._as_vector(self.cfg.tau_limit, "tau_limit")
         self.cmd = np.asarray(self.cfg.cmd, dtype=np.float32)
         if self.cmd.shape != (3,):
@@ -136,6 +149,22 @@ class Sim2SimRunner:
             "joint_vel": [],
             "actions": [],
         }
+        self._enc_pos_bias, self._enc_vel_bias = sample_encoder_biases(
+            self._rng,
+            self.n_joints,
+            self.cfg.perturb.encoder_bias_pos_range,
+            self.cfg.perturb.encoder_bias_vel_range,
+        )
+        self._obs_frame_buffer: list[dict[str, np.ndarray]] = []
+        d_obs = int(self.cfg.perturb.obs_delay_control_steps)
+        d_act = int(self.cfg.perturb.action_delay_control_steps)
+        if d_act > 0:
+            self._action_queue: deque[np.ndarray] | None = deque(
+                [np.zeros(self.n_joints, dtype=np.float32) for _ in range(d_act + 1)],
+                maxlen=d_act + 1,
+            )
+        else:
+            self._action_queue = None
         self._reset_to_training_init()
         print(
             "[INFO] sim2sim cfg: "
@@ -143,7 +172,12 @@ class Sim2SimRunner:
             f"history_len={self.cfg.history_len}, "
             f"warmup_seconds={self.cfg.warmup_seconds}, "
             f"kp={self.kp[0]:.1f}, kd={self.kd[0]:.1f}, "
-            f"init_base_height={self.cfg.init_base_height:.3f}"
+            f"init_base_height={self.cfg.init_base_height:.3f}, "
+            f"motor_gain_scale={self._motor_gain_scale:.3f}, "
+            f"obs_delay={d_obs}, action_delay={d_act}, "
+            f"noise(gyro,grav,q,dq)="
+            f"({self.cfg.perturb.noise_gyro},{self.cfg.perturb.noise_projected_gravity},"
+            f"{self.cfg.perturb.noise_joint_pos},{self.cfg.perturb.noise_joint_vel})"
         )
 
     def _as_vector(self, value: np.ndarray, name: str) -> np.ndarray:
@@ -274,17 +308,34 @@ class Sim2SimRunner:
         joint_pos_rel = q - self.q_default
         joint_vel_rel = dq
 
+        g_b, grav_b, qrel_b, dqrel_b = corrupt_raw_proprio(
+            self._rng,
+            self.cfg.perturb,
+            base_ang_vel_body,
+            projected_gravity_body,
+            joint_pos_rel,
+            joint_vel_rel,
+            self._enc_pos_bias,
+            self._enc_vel_bias,
+        )
+
         warmup_steps = int(self.cfg.warmup_seconds / self.cfg.dt)
         if step_id % self.cfg.decimation == 0:
             frame = build_actor_obs_frame(
-                base_ang_vel_body,
-                projected_gravity_body,
+                g_b,
+                grav_b,
                 self.cmd,
-                joint_pos_rel,
-                joint_vel_rel,
+                qrel_b,
+                dqrel_b,
                 self.last_action,
             )
-            self._update_obs_history(frame)
+            self._obs_frame_buffer.append({k: v.copy() for k, v in frame.items()})
+            d_obs = int(self.cfg.perturb.obs_delay_control_steps)
+            keep = d_obs + 1
+            while len(self._obs_frame_buffer) > keep:
+                self._obs_frame_buffer.pop(0)
+            idx = max(0, len(self._obs_frame_buffer) - 1 - d_obs)
+            self._update_obs_history(self._obs_frame_buffer[idx])
 
         if step_id < warmup_steps:
             action = np.zeros(self.n_joints, dtype=np.float32)
@@ -303,9 +354,14 @@ class Sim2SimRunner:
             if not np.all(np.isfinite(raw_action)):
                 raise RuntimeError(f"Policy output NaN/Inf at step {step_id}: {raw_action}")
 
-            action = np.clip(raw_action, -10.0, 10.0)
+            new_action = np.clip(raw_action, -10.0, 10.0)
+            if self._action_queue is not None:
+                self._action_queue.append(new_action.copy())
+                action = self._action_queue[0].copy()
+            else:
+                action = new_action
 
-            # 注意：last_action 一定存 clip 后的 action
+            # last_action：与施加在机器人上一致（含动作延迟）
             self.last_action = action.copy()
         else:
             action = self.last_action

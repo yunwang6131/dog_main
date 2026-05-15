@@ -1,0 +1,31 @@
+# MuJoCo sim2sim test perturbations (optional). Load with: --perturb_yaml deploy_mujoco/configs/sim2sim_perturb.yaml
+# Requires: pip install pyyaml
+#
+# Units (before build_actor_obs_frame scaling):
+#   noise_gyro / noise_joint_vel: rad/s half-width of U[-w,w]
+#   noise_projected_gravity:      half-width on each component of projected gravity in body frame
+#   noise_joint_pos:              rad
+#
+# CLI flags override these fields when passed (see build_sim2sim_perturb_cfg).
+
+seed: 42
+
+# Half-width w: each element ~ U[-w, w] every policy step
+noise_gyro: 0.03
+noise_projected_gravity: 0.01
+noise_joint_pos: 0.005  
+noise_joint_vel: 0.1
+
+# Synonym for noise_projected_gravity (used only if noise_projected_gravity omitted)
+# noise_gravity: 0.02
+
+# Per-run uniform bias: one sample per joint in [lo, hi]. Use null to disable.
+encoder_bias_pos_range: [-0.005, 0.005]
+encoder_bias_vel_range: [-0.03, 0.03]
+
+# In policy control steps (each step = decimation physics substeps)
+obs_delay_control_steps: 0
+action_delay_control_steps: 1
+
+# One sample s ~ U[lo, hi] at runner init; kp, kd multiplied by s. null = off
+motor_gain_scale_range: [0.95, 1.05]

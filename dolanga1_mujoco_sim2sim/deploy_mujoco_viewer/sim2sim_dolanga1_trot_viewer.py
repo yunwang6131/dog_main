@@ -7,6 +7,7 @@ import mujoco.viewer
 import numpy as np
 
 from deploy_mujoco.sim2sim_core import Sim2SimCfg, Sim2SimRunner
+from deploy_mujoco.sim2sim_obs_corruption import add_sim2sim_perturb_cli, sim2sim_perturb_cfg_from_ns
 from mujoco.glfw import glfw
 
 
@@ -18,6 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cmd_x", type=float, default=2.5, help="Commanded forward velocity.")
     parser.add_argument("--cmd_y", type=float, default=0.0, help="Commanded lateral velocity.")
     parser.add_argument("--cmd_yaw", type=float, default=0.4, help="Commanded yaw velocity.")
+    add_sim2sim_perturb_cli(parser)
     return parser.parse_args()
 
 
@@ -28,6 +30,7 @@ def main() -> None:
         onnx_path=args.policy,
         sim_duration=args.sim_duration,
         cmd=np.array([args.cmd_x, args.cmd_y, args.cmd_yaw], dtype=np.float32),
+        perturb=sim2sim_perturb_cfg_from_ns(args),
     )
     runner = Sim2SimRunner(cfg)
     sim_steps = int(cfg.sim_duration / cfg.dt)
