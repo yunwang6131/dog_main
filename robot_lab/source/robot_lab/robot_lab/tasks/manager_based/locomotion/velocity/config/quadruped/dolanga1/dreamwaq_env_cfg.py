@@ -161,7 +161,7 @@ class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         # ------------------------------Actions------------------------------
         # reduce action scale
-        self.actions.joint_pos.scale = {".*_hip_joint": 0.5, "^(?!.*_hip_joint).*": 0.4} # 0.25 for hip intially
+        self.actions.joint_pos.scale = {".*_hip_joint": 0.5, "^(?!.*_hip_joint).*": 0.25} # 0.25 for hip intially
         self.actions.joint_pos.clip = {".*": (-100.0, 100.0)}
         self.actions.joint_pos.joint_names = self.joint_names
 

@@ -104,6 +104,8 @@ from isaaclab_tasks.utils.hydra import hydra_task_config
 
 import robot_lab.tasks  # noqa: F401  # isort: skip
 
+from robot_lab.third_party.rsl_rl_dreamwaq.models.dreamwaq_onnx_deploy import export_dreamwaq_merged_jit_from_runner
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from rl_utils import camera_follow
 
@@ -255,6 +257,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         runner.export_policy_to_jit(path=export_model_dir, filename="policy.pt")
         runner.export_policy_to_onnx(path=export_model_dir, filename="policy.onnx")
         export_dreamwaq_cenet_weights(runner, export_model_dir)
+        export_dreamwaq_merged_jit_from_runner(runner, export_model_dir)
     else:
         # extract the neural network for rsl-rl < 4.0.0
         if version.parse(installed_version) >= version.parse("2.3.0"):
@@ -274,6 +277,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
         export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
         export_dreamwaq_cenet_weights(runner, export_model_dir)
+        export_dreamwaq_merged_jit_from_runner(runner, export_model_dir)
 
     dt = env.unwrapped.step_dt
 
