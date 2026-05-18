@@ -382,7 +382,8 @@ class Sim2SimRunner:
         if step_id % 100 == 0:
             print(
                 f"[step {step_id}] "
-                f"z={self.data.qpos[2]:.3f}, "
+                f"vx={self.data.qvel[0]:.3f}, "
+                f"vz={self.data.qvel[2]:.3f}, "
                 f"gravity_xy={np.linalg.norm(projected_gravity_body[:2]):.3f}, "
                 f"ang_vel={np.linalg.norm(base_ang_vel_body):.3f}, "
                 f"action_max={np.max(np.abs(action)):.3f}, "

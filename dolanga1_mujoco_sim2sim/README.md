@@ -35,3 +35,19 @@ PYTHONPATH=. python /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/deploy_mujoco_
 --perturb_yaml deploy_mujoco/configs/sim2sim_perturb.yaml
 ```
 
+## Viewer 键盘控制
+
+默认不加 `--keyboard` 时，viewer 会按 `--cmd_x --cmd_y --cmd_yaw` 直接开始跑。
+
+如果想改成纯键盘控制，就在原命令后面加 `--keyboard`，这时启动时速度为 0，完全靠按键给指令。
+
+DreamWaQ viewer 和 PPO viewer 在 `--keyboard` 模式下支持运行时改速度指令：
+
+- `W / S`: 增减前进速度 `cmd_x`
+- `A / D`: 增减横移速度 `cmd_y`
+- `Q / E`: 增减转向速度 `cmd_yaw`
+- `Space`: 速度清零
+- `R`: 恢复启动时的 `--cmd_x --cmd_y --cmd_yaw`
+- `H`: 终端再次打印帮助
+
+当前命令值会显示在 MuJoCo viewer 左上角。
