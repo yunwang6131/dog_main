@@ -24,7 +24,7 @@ from robot_lab.assets.dolanga import DOLANGA1_CFG
 @configclass
 class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     base_link_name = "base_link"
-    foot_link_name = ".*_foot_link"
+    foot_link_name = ".*_calf_link"
     # fmt: off
     joint_names = [
         "LF_hip_joint", "LF_thigh_joint", "LF_calf_joint",
@@ -70,7 +70,7 @@ class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         ]
         self.rewards.undesired_contacts_shank = copy.deepcopy(self.rewards.undesired_contacts)
         self.rewards.undesired_contacts_shank.params["sensor_cfg"].body_names = [".*_calf_link"]
-        self.rewards.undesired_contacts_shank.weight = -0.5
+        self.rewards.undesired_contacts_shank.weight = 0
         self.rewards.contact_forces.weight = -1.5e-4
         self.rewards.contact_forces.params["sensor_cfg"].body_names = [self.foot_link_name]
 
@@ -78,7 +78,7 @@ class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.track_ang_vel_z_exp.weight = 1.5
 
         self.rewards.feet_air_time.weight = 0.1
-        self.rewards.feet_air_time.params["threshold"] = 0.3
+        self.rewards.feet_air_time.params["threshold"] = 0.25
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_contact.weight = 0
         self.rewards.feet_contact.params["expect_contact_num"] = 2
@@ -87,7 +87,7 @@ class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.feet_contact_without_cmd.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_stumble.weight = -1.0
         self.rewards.feet_stumble.params["sensor_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_slide.weight = -0.3
+        self.rewards.feet_slide.weight = -0.3  #-0.2
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.params["asset_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_height.weight = 0.4
@@ -101,7 +101,7 @@ class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             ("LF_calf_link", "RH_calf_link"),
             ("RF_calf_link", "LH_calf_link"),
         )
-        self.rewards.feet_air_time_variance.weight = -1.5
+        self.rewards.feet_air_time_variance.weight = -0.2 #-1.5
         self.rewards.feet_air_time_variance.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.no_fly = RewTerm(
             func=mdp_vel.no_fly,
@@ -124,7 +124,7 @@ class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner_hr_foot = None
         self.scene.front_depth_camera = None
         self.scene.front_depth_camera_flip = None
-        self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.15)
+        self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.14)
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
 
@@ -206,11 +206,13 @@ class Dolanga1DreamWaQRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.terminations.base_height = None
 
         # ------------------------------Curriculums------------------------------
-        self.curriculum.command_levels_lin_vel = None
-        self.curriculum.command_levels_ang_vel = None
+        self.curriculum.command_levels_lin_vel.params["range_multiplier"] = (0.2, 1.0)
+        self.curriculum.command_levels_ang_vel.params["range_multiplier"] = (0.2, 1.0)
+        # self.curriculum.command_levels_lin_vel = None
+        # self.curriculum.command_levels_ang_vel = None
 
         # ------------------------------Commands------------------------------
-        self.commands.base_velocity.ranges.lin_vel_x = (0, 1.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0, 2.5)
         self.commands.base_velocity.ranges.lin_vel_y = (-0, 0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)
 
