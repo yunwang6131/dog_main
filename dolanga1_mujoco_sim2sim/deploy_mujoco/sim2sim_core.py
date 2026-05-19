@@ -11,10 +11,16 @@ import onnxruntime as ort
 class Sim2SimCfg:
     sim_duration: float = 120.0
     dt: float = 0.005
-    decimation: int = 4
+    decimation: int = 2
     history_len: int = 10
     warmup_seconds: float = 0.0
-    init_base_height: float = 0.5
+    init_base_height: float = 0.47
+    gait_period: float = 0.72
+    stand_threshold: float = 0.2
+    base_body_name: str = "base_link"
+    foot_body_names: list[str] = field(
+        default_factory=lambda: ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
+    )
 
     mujoco_model_path: str = "path/to/scene.xml"
     onnx_path: str = "path/to/policy.onnx"
@@ -53,7 +59,7 @@ class Sim2SimCfg:
     )
     q_default: np.ndarray = field(
         default_factory=lambda: np.array(
-            [0.0, 0.8, -1.5, 0.0, 0.8, -1.5, 0.0, 0.8, -1.5, 0.0, 0.8, -1.5], dtype=np.float32
+            [0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6], dtype=np.float32
         )
     )
     action_scale: np.ndarray = field(
@@ -126,6 +132,8 @@ class Sim2SimRunner:
             raise ValueError(f"Expected 12 joints for this policy, got {self.n_joints}: {self.cfg.joint_names}")
 
         self.qpos_idx, self.qvel_idx, self.joint_ids = self._build_joint_indices()
+        self.base_body_id = self._resolve_body_id(self.cfg.base_body_name)
+        self.foot_body_ids = self._build_body_indices(self.cfg.foot_body_names)
         self.actuator_idx = self._build_actuator_indices(self.joint_ids)
         self.last_action = np.zeros(self.n_joints, dtype=np.float32)
         self.obs_history: dict[str, list[np.ndarray]] = {
@@ -136,10 +144,20 @@ class Sim2SimRunner:
             "joint_vel": [],
             "actions": [],
         }
+        self._proprio_frame_dim = 45
+        self._paper_actor_extra_dim = 12 + 2 + 1
+        self._actor_obs_dim = self._proprio_frame_dim * self.cfg.history_len + self._paper_actor_extra_dim
+        onnx_obs_dim = self.input_shape[1] if len(self.input_shape) > 1 and isinstance(self.input_shape[1], int) else None
+        if onnx_obs_dim is not None and onnx_obs_dim != self._actor_obs_dim:
+            raise ValueError(
+                f"Actor ONNX input dim {onnx_obs_dim} != expected {self._actor_obs_dim}. "
+                "Check sim2sim obs layout against BarrierDual training obs_groups."
+            )
         self._reset_to_training_init()
         print(
             "[INFO] sim2sim cfg: "
             f"onnx_input={self.input_shape}, "
+            f"actor_obs_dim={self._actor_obs_dim}, "
             f"history_len={self.cfg.history_len}, "
             f"warmup_seconds={self.cfg.warmup_seconds}, "
             f"kp={self.kp[0]:.1f}, kd={self.kd[0]:.1f}, "
@@ -207,6 +225,16 @@ class Sim2SimRunner:
             actuator_idx.append(int(candidates[0]))
         return np.asarray(actuator_idx, dtype=np.int32)
 
+    def _resolve_body_id(self, body_name: str) -> int:
+        body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, body_name)
+        if body_id < 0:
+            available = [mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i) for i in range(self.model.nbody)]
+            raise ValueError(f"Body '{body_name}' not found in model. Available bodies: {available}")
+        return int(body_id)
+
+    def _build_body_indices(self, body_names: list[str]) -> np.ndarray:
+        return np.asarray([self._resolve_body_id(body_name) for body_name in body_names], dtype=np.int32)
+
     def _find_sensor_slice(self, sensor_name: str, expected_dim: int) -> slice | None:
         sensor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SENSOR, sensor_name)
         if sensor_id < 0:
@@ -234,6 +262,20 @@ class Sim2SimRunner:
         self.data.qpos[self.qpos_idx] = self.q_default
         mujoco.mj_forward(self.model, self.data)
 
+    def _compute_feet_positions_body(self, rot_bw: np.ndarray) -> np.ndarray:
+        base_pos = self.data.xpos[self.base_body_id].astype(np.float32)
+        feet_pos_w = self.data.xpos[self.foot_body_ids].astype(np.float32)
+        feet_pos_body = (rot_bw @ (feet_pos_w - base_pos).T).T
+        return feet_pos_body.reshape(-1).astype(np.float32)
+
+    def _compute_phase_obs(self) -> tuple[np.ndarray, np.ndarray]:
+        cmd_norm = float(np.linalg.norm(self.cmd))
+        stand_mode = np.array([1.0 if cmd_norm < self.cfg.stand_threshold else 0.0], dtype=np.float32)
+        if stand_mode[0] > 0.5:
+            return np.zeros(2, dtype=np.float32), stand_mode
+        phase = 2.0 * np.pi * (self.data.time / self.cfg.gait_period)
+        return np.array([np.sin(phase), np.cos(phase)], dtype=np.float32), stand_mode
+
     def _update_obs_history(self, frame: dict[str, np.ndarray]) -> None:
         for name, value in frame.items():
             history = self.obs_history[name]
@@ -246,7 +288,12 @@ class Sim2SimRunner:
     def _build_actor_obs(self) -> np.ndarray:
         # Match training obs_groups order:
         # base_ang_vel_history, projected_gravity_history, velocity_commands_history,
-        # joint_pos_history, joint_vel_history, actions_history.
+        # joint_pos_history, joint_vel_history, actions_history, foot_positions_body,
+        # phase, stand_mode.
+        base_quat_wxyz = self.data.qpos[3:7].astype(np.float32)
+        rot_bw = quat_to_rotmat_wxyz(base_quat_wxyz).T
+        feet_positions_body = self._compute_feet_positions_body(rot_bw)
+        phase_obs, stand_mode = self._compute_phase_obs()
         obs = np.concatenate(
             [
                 np.concatenate(self.obs_history["base_ang_vel"], axis=0),
@@ -255,12 +302,14 @@ class Sim2SimRunner:
                 np.concatenate(self.obs_history["joint_pos"], axis=0),
                 np.concatenate(self.obs_history["joint_vel"], axis=0),
                 np.concatenate(self.obs_history["actions"], axis=0),
+                feet_positions_body,
+                phase_obs,
+                stand_mode,
             ],
             axis=0,
         ).astype(np.float32)
-        expected_dim = 45 * self.cfg.history_len
-        if obs.shape[0] != expected_dim:
-            raise ValueError(f"Actor obs dim mismatch: {obs.shape[0]} != {expected_dim}")
+        if obs.shape[0] != self._actor_obs_dim:
+            raise ValueError(f"Actor obs dim mismatch: {obs.shape[0]} != {self._actor_obs_dim}")
         return obs
 
     def step(self, step_id: int) -> None:

@@ -54,12 +54,56 @@ gym.register(
 )
 
 gym.register(
+    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-Debug-v0",
+    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1RoughBarrierStyleEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1RoughBarrierDualDebugRunnerCfg",
+        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
+    },
+)
+
+gym.register(
+    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-Paper-v0",
+    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1RoughBarrierStyleEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1RoughBarrierDualPaperRunnerCfg",
+        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
+    },
+)
+
+gym.register(
     id="RobotLab-Isaac-Velocity-Flat-Dolanga1-BarrierDual-v0",
     entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1FlatBarrierStyleEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1FlatBarrierDualRunnerCfg",
+        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1FlatTrainerCfg",
+    },
+)
+
+gym.register(
+    id="RobotLab-Isaac-Velocity-Flat-Dolanga1-BarrierDual-Debug-v0",
+    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1FlatBarrierStyleEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1FlatBarrierDualDebugRunnerCfg",
+        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1FlatTrainerCfg",
+    },
+)
+
+gym.register(
+    id="RobotLab-Isaac-Velocity-Flat-Dolanga1-BarrierDual-Paper-v0",
+    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1FlatBarrierStyleEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1FlatBarrierDualPaperRunnerCfg",
         "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1FlatTrainerCfg",
     },
 )

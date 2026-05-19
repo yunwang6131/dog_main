@@ -64,26 +64,35 @@ def _mean_terrain_height(
     env: "ManagerBasedRLEnv",
     sensor_cfg: SceneEntityCfg,
     fallback: torch.Tensor,
+    reduction: str = "mean",
 ) -> torch.Tensor:
     sensor: RayCaster = env.scene[sensor_cfg.name]
     ray_hits = sensor.data.ray_hits_w[..., 2]
     finite_mask = torch.isfinite(ray_hits) & (torch.abs(ray_hits) < 1e6)
-    safe_hits = torch.where(finite_mask, ray_hits, torch.zeros_like(ray_hits))
-    valid_counts = finite_mask.sum(dim=1).clamp(min=1)
-    mean_hits = safe_hits.sum(dim=1) / valid_counts
+    if reduction == "mean":
+        safe_hits = torch.where(finite_mask, ray_hits, torch.zeros_like(ray_hits))
+        valid_counts = finite_mask.sum(dim=1).clamp(min=1)
+        reduced_hits = safe_hits.sum(dim=1) / valid_counts
+    elif reduction == "max":
+        neg_inf = torch.full_like(ray_hits, float("-inf"))
+        safe_hits = torch.where(finite_mask, ray_hits, neg_inf)
+        reduced_hits = safe_hits.max(dim=1).values
+    else:
+        raise ValueError(f"Unsupported terrain reduction '{reduction}'. Expected 'mean' or 'max'.")
     has_valid_hits = finite_mask.any(dim=1)
-    return torch.where(has_valid_hits, mean_hits, fallback)
+    return torch.where(has_valid_hits, reduced_hits, fallback)
 
 
 def _terrain_heights_from_sensors(
     env: "ManagerBasedRLEnv",
     sensor_cfgs: list[SceneEntityCfg] | None,
     fallback_height: float = 0.0,
+    reduction: str = "mean",
 ) -> torch.Tensor:
     if sensor_cfgs is None or len(sensor_cfgs) == 0:
         return torch.full((env.num_envs, 0), fallback_height, device=env.device)
     fallback = torch.full((env.num_envs,), fallback_height, device=env.device)
-    heights = [_mean_terrain_height(env, sensor_cfg, fallback) for sensor_cfg in sensor_cfgs]
+    heights = [_mean_terrain_height(env, sensor_cfg, fallback, reduction=reduction) for sensor_cfg in sensor_cfgs]
     return torch.stack(heights, dim=1)
 
 
@@ -175,14 +184,15 @@ def barrier_style_foot_clearance(
     if terrain_sensor_cfgs is None or len(terrain_sensor_cfgs) != foot_z.shape[1]:
         terrain_heights = torch.full_like(foot_z, terrain_height)
     else:
-        terrain_heights = _terrain_heights_from_sensors(env, terrain_sensor_cfgs, terrain_height)
+        # Eq. (3) uses the highest sampled terrain around each foot within the local neighborhood.
+        terrain_heights = _terrain_heights_from_sensors(env, terrain_sensor_cfgs, terrain_height, reduction="max")
     moving_mask = _command_active(env, command_name, command_threshold)
     stand_mask = _stand_mode(env, command_name, stand_threshold)
 
     reward = torch.zeros(env.num_envs, device=env.device)
     swing_mask = (g <= d_lower_gait) & moving_mask[:, None].bool()
     for i in range(foot_z.shape[1]):
-        # l_i = p_i - (max terrain sample + p_des); flat terrain => max sample = terrain_height
+        # l_i = p_i - (max terrain sample + p_des); flat terrain => max sample = terrain_height.
         l_i = foot_z[:, i] - (terrain_heights[:, i] + p_des)
         l_i = torch.where(swing_mask[:, i], l_i, torch.zeros_like(l_i))
         reward = reward + barrier_soft_interval(
@@ -249,27 +259,36 @@ def barrier_style_body_height(
 ) -> torch.Tensor:
     """Front / hind body height barriers b_hF, b_hH (Table I).
 
-    Heights are approximated as mean world-frame z of reference links (roll/thigh proxies).
+    Dolanga1 does not provide separate roll-joint bodies, so the hip links are used as the
+    closest proxy to the roll-joint heights described in the paper.
     """
     asset: Articulation = env.scene[asset_cfg.name]
     terrain_fallback = asset.data.root_pos_w[:, 2] * 0.0
 
-    def _mean_height(body_names: list[str]) -> torch.Tensor:
+    def _reference_height(body_names: list[str]) -> torch.Tensor:
         ids = asset.find_bodies(body_names, preserve_order=True)[0]
         if len(ids) == 0:
             return torch.zeros(env.num_envs, device=env.device)
         return asset.data.body_pos_w[:, ids, 2].mean(dim=1)
 
-    bh_f = _mean_height(front_body_names)
-    bh_h = _mean_height(hind_body_names)
+    bh_f = _reference_height(front_body_names)
+    bh_h = _reference_height(hind_body_names)
     if front_terrain_sensor_cfgs:
         front_terrain = torch.stack(
-            [_mean_terrain_height(env, sensor_cfg, terrain_fallback) for sensor_cfg in front_terrain_sensor_cfgs], dim=1
+            [
+                _mean_terrain_height(env, sensor_cfg, terrain_fallback, reduction="max")
+                for sensor_cfg in front_terrain_sensor_cfgs
+            ],
+            dim=1,
         ).mean(dim=1)
         bh_f = bh_f - front_terrain
     if hind_terrain_sensor_cfgs:
         hind_terrain = torch.stack(
-            [_mean_terrain_height(env, sensor_cfg, terrain_fallback) for sensor_cfg in hind_terrain_sensor_cfgs], dim=1
+            [
+                _mean_terrain_height(env, sensor_cfg, terrain_fallback, reduction="max")
+                for sensor_cfg in hind_terrain_sensor_cfgs
+            ],
+            dim=1,
         ).mean(dim=1)
         bh_h = bh_h - hind_terrain
     reward = barrier_soft_interval(bh_f, d_lower=front_bounds[0], d_upper=front_bounds[1], delta=front_delta, alpha=alpha)
@@ -394,8 +413,8 @@ def barrier_style_quadruped_trot(
         + barrier_style_body_height(
             env,
             asset_cfg=asset_cfg,
-            front_body_names=["LF_thigh_link", "RF_thigh_link"],
-            hind_body_names=["LH_thigh_link", "RH_thigh_link"],
+            front_body_names=["LF_hip_link", "RF_hip_link"],
+            hind_body_names=["LH_hip_link", "RH_hip_link"],
         )
         + barrier_style_velocity_tracking(env, command_name=command_name, asset_cfg=asset_cfg)
         + barrier_style_base_motion(env, asset_cfg=asset_cfg)

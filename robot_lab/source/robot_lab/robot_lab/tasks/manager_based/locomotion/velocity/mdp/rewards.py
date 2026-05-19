@@ -160,11 +160,11 @@ class PaperStandardReward(ManagerTermBase):
         for sensor in sensors:
             ray_hits = sensor.data.ray_hits_w[..., 2]
             finite_mask = torch.isfinite(ray_hits) & (torch.abs(ray_hits) < 1e6)
-            safe_hits = torch.where(finite_mask, ray_hits, torch.zeros_like(ray_hits))
-            valid_counts = finite_mask.sum(dim=1).clamp(min=1)
-            mean_hits = safe_hits.sum(dim=1) / valid_counts
+            neg_inf = torch.full_like(ray_hits, float("-inf"))
+            safe_hits = torch.where(finite_mask, ray_hits, neg_inf)
+            max_hits = safe_hits.max(dim=1).values
             has_valid_hits = finite_mask.any(dim=1)
-            hits.append(torch.where(has_valid_hits, mean_hits, fallback))
+            hits.append(torch.where(has_valid_hits, max_hits, fallback))
         return torch.stack(hits, dim=1).mean(dim=1)
 
     def _front_hind_height_balance_penalty(self) -> torch.Tensor:

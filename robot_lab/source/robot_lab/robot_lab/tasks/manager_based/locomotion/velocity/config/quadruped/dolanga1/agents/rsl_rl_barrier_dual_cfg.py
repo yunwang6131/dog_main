@@ -57,8 +57,8 @@ class BarrierDualAlgorithmCfg(RslRlPpoAlgorithmCfg):
 
 
 @configclass
-class Dolanga1RoughBarrierDualRunnerCfg(RslRlOnPolicyRunnerCfg):
-    # Keep rollouts short enough for responsive debugging; override to 400 for paper-style long rollouts.
+class Dolanga1RoughBarrierDualDebugRunnerCfg(RslRlOnPolicyRunnerCfg):
+    # Debug-friendly default. Use the explicit paper runner when matching the paper's long rollouts.
     num_steps_per_env = 64
     max_iterations = 10000
     save_interval = 100
@@ -107,8 +107,33 @@ class Dolanga1RoughBarrierDualRunnerCfg(RslRlOnPolicyRunnerCfg):
 
 
 @configclass
-class Dolanga1FlatBarrierDualRunnerCfg(Dolanga1RoughBarrierDualRunnerCfg):
+class Dolanga1RoughBarrierDualPaperRunnerCfg(Dolanga1RoughBarrierDualDebugRunnerCfg):
+    num_steps_per_env = 400
+    experiment_name = "dolanga1_rough_barrier_dual_paper"
+
+
+@configclass
+class Dolanga1RoughBarrierDualRunnerCfg(Dolanga1RoughBarrierDualDebugRunnerCfg):
+    """Backward-compatible alias for the debug-friendly BarrierDual runner."""
+
+
+@configclass
+class Dolanga1FlatBarrierDualDebugRunnerCfg(Dolanga1RoughBarrierDualDebugRunnerCfg):
     def __post_init__(self):
         super().__post_init__()
         self.max_iterations = 5000
         self.experiment_name = "dolanga1_flat_barrier_dual"
+
+
+@configclass
+class Dolanga1FlatBarrierDualPaperRunnerCfg(Dolanga1FlatBarrierDualDebugRunnerCfg):
+    num_steps_per_env = 400
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.experiment_name = "dolanga1_flat_barrier_dual_paper"
+
+
+@configclass
+class Dolanga1FlatBarrierDualRunnerCfg(Dolanga1FlatBarrierDualDebugRunnerCfg):
+    """Backward-compatible alias for the debug-friendly flat BarrierDual runner."""

@@ -26,8 +26,9 @@ _FOOT_SENSOR_CFG = SceneEntityCfg("contact_forces", body_names=_FOOT_BODY_NAMES)
 _FOOT_ASSET_CFG = SceneEntityCfg("robot", body_names=_FOOT_BODY_NAMES)
 _FOOT_ASSET_AND_JOINT_CFG = SceneEntityCfg("robot", joint_names=[".*"], body_names=_FOOT_BODY_NAMES)
 _ROBOT_JOINT_CFG = SceneEntityCfg("robot", joint_names=[".*"])
-_FRONT_BODY_NAMES = ["LF_thigh_link", "RF_thigh_link"]
-_HIND_BODY_NAMES = ["LH_thigh_link", "RH_thigh_link"]
+# Dolanga1 does not expose dedicated roll-joint bodies, so hip links are the closest height-reference proxy.
+_FRONT_REFERENCE_BODY_NAMES = ["LF_hip_link", "RF_hip_link"]
+_HIND_REFERENCE_BODY_NAMES = ["LH_hip_link", "RH_hip_link"]
 _FOOT_TERRAIN_SENSOR_CFGS = [
     SceneEntityCfg("height_scanner_fl_foot"),
     SceneEntityCfg("height_scanner_fr_foot"),
@@ -37,13 +38,125 @@ _FOOT_TERRAIN_SENSOR_CFGS = [
 _FRONT_TERRAIN_SENSOR_CFGS = _FOOT_TERRAIN_SENSOR_CFGS[:2]
 _HIND_TERRAIN_SENSOR_CFGS = _FOOT_TERRAIN_SENSOR_CFGS[2:]
 
+_PAPER_ENV_RECIPE = {
+    "num_envs": 400,
+    "decimation": 2,
+    "episode_length_s": 4.0,
+    "command_resampling_time_range": (4.0, 4.0),
+}
+
+_BARRIER_GAIT_PARAMS = {
+    "period": _TROT_PERIOD,
+    "phase_offsets": _TROT_PHASE_OFFSETS,
+    "sensor_cfg": _FOOT_SENSOR_CFG,
+    "d_lower": -0.6,
+    "d_upper": 2.0,
+    "delta": 0.1,
+    "alpha": 0.1,
+    "command_name": "base_velocity",
+    "command_threshold": 0.2,
+    "stand_threshold": 0.2,
+}
+
+_BARRIER_FOOT_CLEARANCE_PARAMS = {
+    "period": _TROT_PERIOD,
+    "phase_offsets": _TROT_PHASE_OFFSETS,
+    "sensor_cfg": _FOOT_SENSOR_CFG,
+    "asset_cfg": _FOOT_ASSET_CFG,
+    "terrain_sensor_cfgs": _FOOT_TERRAIN_SENSOR_CFGS,
+    "p_des": 0.15,
+    "d_lower_gait": -0.6,
+    "d_lower_clearance": -0.08,
+    "d_upper_clearance": 1.0,
+    "delta": 0.01,
+    "alpha": 0.1,
+    "command_name": "base_velocity",
+    "command_threshold": 0.2,
+    "stand_threshold": 0.2,
+    "terrain_height": 0.0,
+}
+
+_BARRIER_JOINT_POSITION_PARAMS = {
+    "asset_cfg": SceneEntityCfg("robot"),
+    "hip_joint_names": [".*_hip_joint"],
+    "thigh_joint_names": [".*_thigh_joint"],
+    "calf_joint_names": [".*_calf_joint"],
+    "roll_bounds": (-0.5235987755982988, 0.5235987755982988),
+    "thigh_bounds": (-0.7853981633974483, 0.7853981633974483),
+    "calf_bounds": (-1.2566370614359172, 0.7853981633974483),
+    "delta": 0.08,
+    "alpha": 0.1,
+}
+
+_BARRIER_BODY_HEIGHT_PARAMS = {
+    "asset_cfg": SceneEntityCfg("robot"),
+    "front_body_names": _FRONT_REFERENCE_BODY_NAMES,
+    "hind_body_names": _HIND_REFERENCE_BODY_NAMES,
+    "front_terrain_sensor_cfgs": _FRONT_TERRAIN_SENSOR_CFGS,
+    "hind_terrain_sensor_cfgs": _HIND_TERRAIN_SENSOR_CFGS,
+    # Scaled for Dolanga1 (~0.47 m standing); paper Table I targets HOUND-scale heights.
+    "front_bounds": (0.18, 0.38),
+    "hind_bounds": (0.18, 0.38),
+    "front_delta": 0.04,
+    "hind_delta": 0.04,
+    "alpha": 0.1,
+}
+
+_BARRIER_VELOCITY_TRACKING_PARAMS = {
+    "command_name": "base_velocity",
+    "asset_cfg": SceneEntityCfg("robot"),
+    "vel_bounds": (-0.4, 0.4),
+    "ang_bounds": (-0.4, 0.4),
+    "delta": 0.2,
+    "alpha": 0.1,
+}
+
+_BARRIER_BASE_MOTION_PARAMS = {
+    "asset_cfg": SceneEntityCfg("robot"),
+    "omega_xy_bounds": (-0.3, 0.3),
+    "vz_bounds": (-0.2, 0.2),
+    "omega_delta": 0.3,
+    "vz_delta": 0.2,
+    "alpha": 0.1,
+}
+
+_BARRIER_JOINT_VELOCITY_PARAMS = {
+    "asset_cfg": _ROBOT_JOINT_CFG,
+    "vel_bounds": (-8.0, 8.0),
+    "delta": 2.0,
+    "alpha": 0.1,
+}
+
+_PAPER_STANDARD_REWARD_PARAMS = {
+    "command_name": "base_velocity",
+    "asset_cfg": _FOOT_ASSET_AND_JOINT_CFG,
+    "sensor_cfg": _FOOT_SENSOR_CFG,
+    "front_body_names": _FRONT_REFERENCE_BODY_NAMES,
+    "hind_body_names": _HIND_REFERENCE_BODY_NAMES,
+    "front_terrain_sensor_cfgs": _FRONT_TERRAIN_SENSOR_CFGS,
+    "hind_terrain_sensor_cfgs": _HIND_TERRAIN_SENSOR_CFGS,
+    "contact_threshold": 1.0,
+    "lin_vel_std": 0.5,
+    "ang_vel_std": 0.5,
+    "lin_vel_weight": 3.0,
+    "ang_vel_weight": 1.5,
+    "neg_exp_scale": 0.2,
+    "torque_weight": 2.5e-5,
+    "action_rate_weight": 0.03,
+    "foot_slip_weight": 0.3,
+    "foot_position_weight": 0.5,
+    "front_hind_balance_weight": 1.0,
+    "use_orientation_penalty": False,
+    "orientation_weight": 1.0,
+}
+
 
 def _make_foot_height_scanner(prim_path: str) -> RayCasterCfg:
     return RayCasterCfg(
         prim_path=prim_path,
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 2.0)),
         ray_alignment="yaw",
-        # The paper samples terrain within 5 cm around each foot.
+        # This spans a 10 cm square neighborhood, i.e. within +/- 5 cm around each foot.
         pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=(0.1, 0.1)),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
@@ -51,11 +164,11 @@ def _make_foot_height_scanner(prim_path: str) -> RayCasterCfg:
 
 
 def _tune_paper_training_recipe(cfg) -> None:
-    cfg.scene.num_envs = 400
-    cfg.decimation = 2
-    cfg.episode_length_s = 4.0
+    cfg.scene.num_envs = _PAPER_ENV_RECIPE["num_envs"]
+    cfg.decimation = _PAPER_ENV_RECIPE["decimation"]
+    cfg.episode_length_s = _PAPER_ENV_RECIPE["episode_length_s"]
     cfg.sim.render_interval = cfg.decimation
-    cfg.commands.base_velocity.resampling_time_range = (4.0, 4.0)
+    cfg.commands.base_velocity.resampling_time_range = _PAPER_ENV_RECIPE["command_resampling_time_range"]
 
 
 def _enable_paper_aux_sensors(cfg) -> None:
@@ -129,76 +242,37 @@ def _add_barrier_style_rewards(cfg) -> None:
     cfg.rewards.barrier_style_gait = RewTerm(
         func=barrier_style_rewards.barrier_style_gait,
         weight=1.0,
-        params={
-            "period": _TROT_PERIOD,
-            "phase_offsets": _TROT_PHASE_OFFSETS,
-            "sensor_cfg": _FOOT_SENSOR_CFG,
-            "d_lower": -0.6,
-            "d_upper": 2.0,
-            "delta": 0.1,
-            "command_name": "base_velocity",
-            "command_threshold": 0.2,
-            "stand_threshold": 0.2,
-        },
+        params=dict(_BARRIER_GAIT_PARAMS),
     )
     cfg.rewards.barrier_style_foot_clearance = RewTerm(
         func=barrier_style_rewards.barrier_style_foot_clearance,
         weight=1.0,
-        params={
-            "period": _TROT_PERIOD,
-            "phase_offsets": _TROT_PHASE_OFFSETS,
-            "sensor_cfg": _FOOT_SENSOR_CFG,
-            "asset_cfg": _FOOT_ASSET_CFG,
-            "terrain_sensor_cfgs": _FOOT_TERRAIN_SENSOR_CFGS,
-            "p_des": 0.15,
-            "d_lower_gait": -0.6,
-            "d_lower_clearance": -0.08,
-            "delta": 0.01,
-            "command_name": "base_velocity",
-            "command_threshold": 0.2,
-            "stand_threshold": 0.2,
-        },
+        params=dict(_BARRIER_FOOT_CLEARANCE_PARAMS),
     )
     cfg.rewards.barrier_style_joint_position = RewTerm(
         func=barrier_style_rewards.barrier_style_joint_position,
         weight=1.0,
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "hip_joint_names": [".*_hip_joint"],
-            "thigh_joint_names": [".*_thigh_joint"],
-            "calf_joint_names": [".*_calf_joint"],
-        },
+        params=dict(_BARRIER_JOINT_POSITION_PARAMS),
     )
     cfg.rewards.barrier_style_body_height = RewTerm(
         func=barrier_style_rewards.barrier_style_body_height,
         weight=1.0,
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "front_body_names": _FRONT_BODY_NAMES,
-            "hind_body_names": _HIND_BODY_NAMES,
-            "front_terrain_sensor_cfgs": _FRONT_TERRAIN_SENSOR_CFGS,
-            "hind_terrain_sensor_cfgs": _HIND_TERRAIN_SENSOR_CFGS,
-            # Scaled for Dolanga1 (~0.47 m standing); paper Table I targets HOUND-scale heights.
-            "front_bounds": (0.18, 0.38),
-            "hind_bounds": (0.18, 0.38),
-            "front_delta": 0.04,
-            "hind_delta": 0.04,
-        },
+        params=dict(_BARRIER_BODY_HEIGHT_PARAMS),
     )
     cfg.rewards.barrier_style_velocity_tracking = RewTerm(
         func=barrier_style_rewards.barrier_style_velocity_tracking,
         weight=1.0,
-        params={"command_name": "base_velocity", "asset_cfg": SceneEntityCfg("robot")},
+        params=dict(_BARRIER_VELOCITY_TRACKING_PARAMS),
     )
     cfg.rewards.barrier_style_base_motion = RewTerm(
         func=barrier_style_rewards.barrier_style_base_motion,
         weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot")},
+        params=dict(_BARRIER_BASE_MOTION_PARAMS),
     )
     cfg.rewards.barrier_style_joint_velocity = RewTerm(
         func=barrier_style_rewards.barrier_style_joint_velocity,
         weight=1.0,
-        params={"asset_cfg": _ROBOT_JOINT_CFG, "vel_bounds": (-8.0, 8.0), "delta": 2.0},
+        params=dict(_BARRIER_JOINT_VELOCITY_PARAMS),
     )
 
 
@@ -206,24 +280,7 @@ def _add_paper_standard_reward(cfg) -> None:
     cfg.rewards.paper_standard_reward = RewTerm(
         func=mdp.PaperStandardReward,
         weight=1.0,
-        params={
-            "command_name": "base_velocity",
-            "asset_cfg": _FOOT_ASSET_AND_JOINT_CFG,
-            "sensor_cfg": _FOOT_SENSOR_CFG,
-            "front_body_names": _FRONT_BODY_NAMES,
-            "hind_body_names": _HIND_BODY_NAMES,
-            "front_terrain_sensor_cfgs": _FRONT_TERRAIN_SENSOR_CFGS,
-            "hind_terrain_sensor_cfgs": _HIND_TERRAIN_SENSOR_CFGS,
-            "lin_vel_weight": 3.0,
-            "ang_vel_weight": 1.5,
-            "neg_exp_scale": 0.2,
-            "torque_weight": 2.5e-5,
-            "action_rate_weight": 0.03,
-            "foot_slip_weight": 0.3,
-            "foot_position_weight": 0.5,
-            "front_hind_balance_weight": 1.0,
-            "use_orientation_penalty": False,
-        },
+        params=dict(_PAPER_STANDARD_REWARD_PARAMS),
     )
 
 
