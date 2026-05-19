@@ -18,6 +18,18 @@ from rsl_rl.models import MLPModel
 from rsl_rl.utils import resolve_callable, resolve_obs_groups, resolve_optimizer
 
 from robot_lab.third_party.rsl_rl_barrier_dual.barrier_rollout_storage import BarrierDualRolloutStorage
+from robot_lab.third_party.rsl_rl_barrier_dual.models import BarrierEstimatorLosses
+
+# Isaac Lab's deprecation helper only migrates actor/critic, not critic_barrier.
+_LEGACY_MLP_KWARGS = ("stochastic", "init_noise_std", "noise_std_type", "state_dependent_std")
+
+
+def _sanitize_mlp_cfg(model_cfg: dict) -> dict:
+    """Drop rsl-rl < 5 kwargs that break ``MLPModel`` on rsl-rl >= 5."""
+    sanitized = dict(model_cfg)
+    for key in _LEGACY_MLP_KWARGS:
+        sanitized.pop(key, None)
+    return sanitized
 
 
 class BarrierDualPPO(PPO):
@@ -33,6 +45,7 @@ class BarrierDualPPO(PPO):
         storage: BarrierDualRolloutStorage,
         *,
         surrogate_barrier_weight: float = 0.5,
+        estimator_loss_coef: float = 1.0,
         **kwargs,
     ) -> None:
         if kwargs.get("rnd_cfg"):
@@ -53,6 +66,7 @@ class BarrierDualPPO(PPO):
         self.transition = BarrierDualRolloutStorage.Transition()
         self.surrogate_barrier_weight = float(surrogate_barrier_weight)
         self.surrogate_standard_weight = 1.0 - self.surrogate_barrier_weight
+        self.estimator_loss_coef = float(estimator_loss_coef)
 
     def act(self, obs: TensorDict) -> torch.Tensor:
         self.transition.hidden_states = (self.actor.get_hidden_state(), self.critic.get_hidden_state())
@@ -140,6 +154,10 @@ class BarrierDualPPO(PPO):
         mean_value_loss_barrier = 0.0
         mean_surrogate_loss = 0.0
         mean_entropy = 0.0
+        mean_estimator_loss = 0.0
+        mean_estimator_velocity_loss = 0.0
+        mean_estimator_foot_contact_loss = 0.0
+        mean_estimator_terrain_loss = 0.0
 
         generator = self.storage.mini_batch_generator(self.num_mini_batches, self.num_learning_epochs)
 
@@ -223,6 +241,12 @@ class BarrierDualPPO(PPO):
 
             loss = surrogate_loss + self.value_loss_coef * (value_loss + value_loss_b) - self.entropy_coef * entropy.mean()
 
+            estimator_losses: BarrierEstimatorLosses | None = None
+            compute_estimator_losses = getattr(self.actor, "compute_estimator_losses", None)
+            if callable(compute_estimator_losses):
+                estimator_losses = compute_estimator_losses(batch.observations)
+                loss = loss + self.estimator_loss_coef * estimator_losses.total
+
             self.optimizer.zero_grad()
             loss.backward()
 
@@ -238,21 +262,36 @@ class BarrierDualPPO(PPO):
             mean_value_loss_barrier += value_loss_b.item()
             mean_surrogate_loss += surrogate_loss.item()
             mean_entropy += entropy.mean().item()
+            if estimator_losses is not None:
+                mean_estimator_loss += estimator_losses.total.item()
+                mean_estimator_velocity_loss += estimator_losses.velocity.item()
+                mean_estimator_foot_contact_loss += estimator_losses.foot_contact.item()
+                mean_estimator_terrain_loss += estimator_losses.terrain.item()
 
         n = self.num_learning_epochs * self.num_mini_batches
         mean_value_loss /= n
         mean_value_loss_barrier /= n
         mean_surrogate_loss /= n
         mean_entropy /= n
+        mean_estimator_loss /= n
+        mean_estimator_velocity_loss /= n
+        mean_estimator_foot_contact_loss /= n
+        mean_estimator_terrain_loss /= n
 
         self.storage.clear()
 
-        return {
+        loss_dict = {
             "value": mean_value_loss,
             "value_barrier": mean_value_loss_barrier,
             "surrogate": mean_surrogate_loss,
             "entropy": mean_entropy,
         }
+        if hasattr(self.actor, "compute_estimator_losses"):
+            loss_dict["estimator"] = mean_estimator_loss
+            loss_dict["estimator_velocity"] = mean_estimator_velocity_loss
+            loss_dict["estimator_foot_contact"] = mean_estimator_foot_contact_loss
+            loss_dict["estimator_terrain"] = mean_estimator_terrain_loss
+        return loss_dict
 
     def save(self) -> dict:
         d = super().save()
@@ -315,14 +354,15 @@ class BarrierDualPPO(PPO):
         cfg["algorithm"] = resolve_rnd_config(cfg["algorithm"], obs, cfg["obs_groups"], env)
         cfg["algorithm"] = resolve_symmetry_config(cfg["algorithm"], env)
 
-        actor = actor_class(obs, cfg["obs_groups"], "actor", env.num_actions, **cfg["actor"]).to(device)
+        actor_cfg = _sanitize_mlp_cfg(cfg["actor"])
+        actor = actor_class(obs, cfg["obs_groups"], "actor", env.num_actions, **actor_cfg).to(device)
         print(f"BarrierDual Actor Model: {actor}")
         share = cfg["algorithm"].pop("share_cnn_encoders", None)
-        critic_cfg = dict(cfg["critic"])
+        critic_cfg = _sanitize_mlp_cfg(cfg["critic"])
         if share:
             critic_cfg["cnns"] = actor.cnns  # type: ignore[index]
         critic = critic_class(obs, cfg["obs_groups"], "critic", 1, **critic_cfg).to(device)
-        critic_barrier_cfg = dict(cfg["critic_barrier"])
+        critic_barrier_cfg = _sanitize_mlp_cfg(cfg["critic_barrier"])
         if share:
             critic_barrier_cfg["cnns"] = actor.cnns  # type: ignore[index]
         critic_barrier = critic_barrier_class(obs, cfg["obs_groups"], "critic", 1, **critic_barrier_cfg).to(device)

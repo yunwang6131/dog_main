@@ -42,7 +42,7 @@ DOLANGA1_CFG = ArticulationCfg(
         joint_pos={
             ".*_hip_joint": 0.0,
             ".*_thigh_joint": 0.8,
-            ".*_calf_joint": -1.5,
+            ".*_calf_joint": -1.6,
         },
         joint_vel={".*": 0.0},
     ),

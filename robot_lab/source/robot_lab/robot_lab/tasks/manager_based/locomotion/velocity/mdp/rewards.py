@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 import torch
@@ -102,6 +103,136 @@ def stand_still(
     reward *= torch.norm(env.command_manager.get_command(command_name), dim=1) < command_threshold
     reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
+
+
+class PaperStandardReward(ManagerTermBase):
+    """Paper-style standard reward: r_pos * exp(0.2 * r_neg) for BarrierDual quadruped training."""
+
+    def __init__(self, cfg: RewTerm, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        self.env = env
+        params = cfg.params
+        self.command_name: str = params["command_name"]
+        self.asset: Articulation = env.scene[params["asset_cfg"].name]
+        self.contact_sensor: ContactSensor = env.scene.sensors[params["sensor_cfg"].name]
+        self.contact_threshold: float = params.get("contact_threshold", 1.0)
+        self.lin_vel_std: float = params.get("lin_vel_std", 0.5)
+        self.ang_vel_std: float = params.get("ang_vel_std", 0.5)
+        self.lin_vel_weight: float = params.get("lin_vel_weight", 3.0)
+        self.ang_vel_weight: float = params.get("ang_vel_weight", 1.5)
+        self.neg_exp_scale: float = params.get("neg_exp_scale", 0.2)
+        self.torque_weight: float = params.get("torque_weight", 2.5e-5)
+        self.action_rate_weight: float = params.get("action_rate_weight", 0.03)
+        self.foot_slip_weight: float = params.get("foot_slip_weight", 0.3)
+        self.foot_position_weight: float = params.get("foot_position_weight", 0.5)
+        self.front_hind_balance_weight: float = params.get("front_hind_balance_weight", 1.0)
+        self.use_orientation_penalty: bool = params.get("use_orientation_penalty", False)
+        self.orientation_weight: float = params.get("orientation_weight", 1.0)
+        self.front_body_names: list[str] = params.get("front_body_names", [])
+        self.hind_body_names: list[str] = params.get("hind_body_names", [])
+        self.front_terrain_sensor_cfgs: list[SceneEntityCfg] = params.get("front_terrain_sensor_cfgs", [])
+        self.hind_terrain_sensor_cfgs: list[SceneEntityCfg] = params.get("hind_terrain_sensor_cfgs", [])
+
+        self.foot_ids = self.asset.find_bodies(params["asset_cfg"].body_names, preserve_order=True)[0]
+        self.joint_ids = self.asset.find_joints(params["asset_cfg"].joint_names, preserve_order=True)[0]
+        self.contact_body_ids = self.contact_sensor.find_bodies(params["sensor_cfg"].body_names, preserve_order=True)[0]
+        self.front_body_ids = self.asset.find_bodies(self.front_body_names, preserve_order=True)[0]
+        self.hind_body_ids = self.asset.find_bodies(self.hind_body_names, preserve_order=True)[0]
+        self.front_terrain_sensors = [env.scene[sensor_cfg.name] for sensor_cfg in self.front_terrain_sensor_cfgs]
+        self.hind_terrain_sensors = [env.scene[sensor_cfg.name] for sensor_cfg in self.hind_terrain_sensor_cfgs]
+
+        self.nominal_foot_pos_b = self._feet_positions_body().detach().mean(dim=0, keepdim=True)
+
+    def _feet_positions_body(self) -> torch.Tensor:
+        translated = self.asset.data.body_link_pos_w[:, self.foot_ids, :] - self.asset.data.root_link_pos_w[:, None, :]
+        feet_pos_body = torch.zeros_like(translated)
+        for i in range(len(self.foot_ids)):
+            feet_pos_body[:, i, :] = math_utils.quat_apply(
+                math_utils.quat_conjugate(self.asset.data.root_link_quat_w), translated[:, i, :]
+            )
+        return feet_pos_body
+
+    def _mean_terrain_height(self, sensors: list[RayCaster]) -> torch.Tensor:
+        if len(sensors) == 0:
+            return torch.zeros(self.env.num_envs, device=self.device)
+        hits = []
+        fallback = torch.zeros(self.env.num_envs, device=self.device)
+        for sensor in sensors:
+            ray_hits = sensor.data.ray_hits_w[..., 2]
+            finite_mask = torch.isfinite(ray_hits) & (torch.abs(ray_hits) < 1e6)
+            safe_hits = torch.where(finite_mask, ray_hits, torch.zeros_like(ray_hits))
+            valid_counts = finite_mask.sum(dim=1).clamp(min=1)
+            mean_hits = safe_hits.sum(dim=1) / valid_counts
+            has_valid_hits = finite_mask.any(dim=1)
+            hits.append(torch.where(has_valid_hits, mean_hits, fallback))
+        return torch.stack(hits, dim=1).mean(dim=1)
+
+    def _front_hind_height_balance_penalty(self) -> torch.Tensor:
+        if len(self.front_body_ids) == 0 or len(self.hind_body_ids) == 0:
+            return torch.zeros(self.env.num_envs, device=self.device)
+        front_height = self.asset.data.body_pos_w[:, self.front_body_ids, 2].mean(dim=1)
+        hind_height = self.asset.data.body_pos_w[:, self.hind_body_ids, 2].mean(dim=1)
+        front_height = front_height - self._mean_terrain_height(self.front_terrain_sensors)
+        hind_height = hind_height - self._mean_terrain_height(self.hind_terrain_sensors)
+        return torch.square(front_height - hind_height)
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        command_name: str,
+        asset_cfg: SceneEntityCfg,
+        sensor_cfg: SceneEntityCfg,
+        front_body_names: list[str],
+        hind_body_names: list[str],
+        front_terrain_sensor_cfgs: list[SceneEntityCfg],
+        hind_terrain_sensor_cfgs: list[SceneEntityCfg],
+        contact_threshold: float = 1.0,
+        lin_vel_std: float = 0.5,
+        ang_vel_std: float = 0.5,
+        lin_vel_weight: float = 3.0,
+        ang_vel_weight: float = 1.5,
+        neg_exp_scale: float = 0.2,
+        torque_weight: float = 2.5e-5,
+        action_rate_weight: float = 0.03,
+        foot_slip_weight: float = 0.3,
+        foot_position_weight: float = 0.5,
+        front_hind_balance_weight: float = 1.0,
+        use_orientation_penalty: bool = False,
+        orientation_weight: float = 1.0,
+    ) -> torch.Tensor:
+        # RewardManager passes cfg.params every step; the term caches resolved values in __init__.
+        command = env.command_manager.get_command(self.command_name)
+        lin_vel_error = torch.sum(torch.square(command[:, :2] - self.asset.data.root_lin_vel_b[:, :2]), dim=1)
+        ang_vel_error = torch.square(command[:, 2] - self.asset.data.root_ang_vel_b[:, 2])
+        r_pos = self.lin_vel_weight * torch.exp(-lin_vel_error / self.lin_vel_std**2)
+        r_pos = r_pos + self.ang_vel_weight * torch.exp(-ang_vel_error / self.ang_vel_std**2)
+
+        contacts = self.contact_sensor.data.net_forces_w_history[:, :, self.contact_body_ids, :].norm(dim=-1).max(dim=1)[0]
+        contacts = (contacts > self.contact_threshold).float()
+        foot_vel_b = torch.zeros(env.num_envs, len(self.foot_ids), 3, device=env.device)
+        translated_vel = self.asset.data.body_lin_vel_w[:, self.foot_ids, :] - self.asset.data.root_lin_vel_w[:, None, :]
+        for i in range(len(self.foot_ids)):
+            foot_vel_b[:, i, :] = math_utils.quat_apply_inverse(self.asset.data.root_quat_w, translated_vel[:, i, :])
+        foot_slip = torch.sum(torch.linalg.norm(foot_vel_b[:, :, :2], dim=2) * contacts, dim=1)
+
+        foot_pos_b = self._feet_positions_body()
+        foot_position_error = torch.sum(torch.square(foot_pos_b - self.nominal_foot_pos_b), dim=(1, 2))
+        torque_penalty = torch.sum(torch.square(self.asset.data.applied_torque[:, self.joint_ids]), dim=1)
+        action_rate_penalty = torch.sum(
+            torch.square(env.action_manager.action - env.action_manager.prev_action), dim=1
+        )
+
+        r_neg = -self.foot_slip_weight * foot_slip
+        r_neg = r_neg - self.torque_weight * torque_penalty
+        r_neg = r_neg - self.action_rate_weight * action_rate_penalty
+        r_neg = r_neg - self.foot_position_weight * foot_position_error
+        r_neg = r_neg - self.front_hind_balance_weight * self._front_hind_height_balance_penalty()
+        if self.use_orientation_penalty:
+            r_neg = r_neg - self.orientation_weight * torch.sum(torch.square(self.asset.data.projected_gravity_b[:, :2]), dim=1)
+
+        reward = r_pos * torch.exp(self.neg_exp_scale * r_neg)
+        reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0.0, 0.7) / 0.7
+        return reward
 
 
 def joint_pos_penalty(
