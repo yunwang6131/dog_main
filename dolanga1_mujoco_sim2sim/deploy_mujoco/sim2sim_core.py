@@ -22,7 +22,7 @@ class Sim2SimCfg:
     decimation: int = 4
     history_len: int = 10
     warmup_seconds: float = 0.0
-    init_base_height: float = 0.5
+    init_base_height: float = 0.47
 
     mujoco_model_path: str = "path/to/scene.xml"
     onnx_path: str = "path/to/policy.onnx"

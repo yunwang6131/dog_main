@@ -13,20 +13,24 @@
 ## 运行示例
 
 在本目录执行：
+
+`resources/a1_scene.xml` 会额外加载 `slide.xml`，里面有坡道和楼梯。
+如果你想先做“训练配置和 sim2sim 是否对齐”的基线检查，优先用新加的 `resources/a1_flat_scene.xml`。
+
 # 跑dreamwaq
 ```bash
-PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_dreamwaq_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/policy.onnx --cenet /home/sen/wy/dog_main/robot_lab/logs/rsl_rl/dolanga1_rough_dreamwaq/2026-05-13_17-33-33_initial/exported/cenet.pt
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_dreamwaq_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_flat_scene.xml --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/policy.onnx --cenet /home/sen/wy/dog_main/robot_lab/logs/rsl_rl/dolanga1_rough_dreamwaq/2026-05-13_17-33-33_initial/exported/cenet.pt
 ```
 
 # 跑PPO
 ```bash
-PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml   --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_15-27-00_change_urdf/exported/policy.onnx
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_flat_scene.xml   --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_15-27-00_change_urdf/exported/policy.onnx
 ```
 
 ## sim2sim 扰动 YAML
 
 ```bash
-PYTHONPATH=. python /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/deploy_mujoco_viewer/sim2sim_dolanga1_dreamwaq_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml   --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/policy.onnx --cenet /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/cenet.pt --perturb_yaml deploy_mujoco/configs/sim2sim_perturb.yaml
+PYTHONPATH=. python /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/deploy_mujoco_viewer/sim2sim_dolanga1_dreamwaq_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_flat_scene.xml   --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/policy.onnx --cenet /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/cenet.pt --perturb_yaml deploy_mujoco/configs/sim2sim_perturb.yaml
 ```
 
 编辑 `deploy_mujoco/configs/sim2sim_perturb.yaml`，启动时加：

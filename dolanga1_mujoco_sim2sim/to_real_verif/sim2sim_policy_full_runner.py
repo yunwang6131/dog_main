@@ -1,19 +1,3 @@
-"""MuJoCo sim2sim for DreamWaQ: CENet (PyTorch checkpoint) + actor MLP (ONNX).
-
-Actor ONNX is the exported MLP tail only (input = current proprio + v_est + z).
-Observation layout matches training
-``robot_lab.tasks...dolanga1.agents.rsl_rl_dreamwaq_cfg`` / ``DreamWaQActor.get_latent``:
-
-  concat(
-    current step: base_ang_vel, projected_gravity, velocity_commands,
-                 joint_pos, joint_vel, actions,
-    v_est (velocity_dim),
-    z = latent mu (latent_dim),
-  )
-
-History for CENet matches flattened *_history groups (same order as PPO sim2sim 450-dim vector).
-"""
-
 from __future__ import annotations
 
 from collections import deque
@@ -21,10 +5,8 @@ from dataclasses import dataclass, field
 
 import mujoco
 import numpy as np
-import onnxruntime as ort
 import torch
 
-from deploy_mujoco.dreamwaq_cenet_loader import load_dreamwaq_cenet_from_rsl_checkpoint
 from deploy_mujoco.sim2sim_core import build_actor_obs_frame, quat_to_rotmat_wxyz
 from deploy_mujoco.sim2sim_obs_corruption import (
     Sim2SimPerturbCfg,
@@ -35,7 +17,7 @@ from deploy_mujoco.sim2sim_obs_corruption import (
 
 
 @dataclass
-class DreamWaQSim2SimCfg:
+class PolicyFullSim2SimCfg:
     sim_duration: float = 120.0
     dt: float = 0.005
     decimation: int = 4
@@ -44,8 +26,7 @@ class DreamWaQSim2SimCfg:
     init_base_height: float = 0.47
 
     mujoco_model_path: str = "path/to/scene.xml"
-    actor_onnx_path: str = "path/to/actor.onnx"
-    cenet_ckpt_path: str = "path/to/model.pt"
+    policy_full_path: str = "path/to/policy_full.pt"
 
     joint_names: list[str] = field(
         default_factory=lambda: [
@@ -81,7 +62,7 @@ class DreamWaQSim2SimCfg:
     )
     q_default: np.ndarray = field(
         default_factory=lambda: np.array(
-            [0.0, 0.8, -1.5, 0.0, 0.8, -1.5, 0.0, 0.8, -1.5, 0.0, 0.8, -1.5], dtype=np.float32
+            [0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6], dtype=np.float32
         )
     )
     action_scale: np.ndarray = field(
@@ -92,28 +73,22 @@ class DreamWaQSim2SimCfg:
     kp: np.ndarray = field(default_factory=lambda: np.array([100.0] * 12, dtype=np.float32))
     kd: np.ndarray = field(default_factory=lambda: np.array([1.5] * 12, dtype=np.float32))
     tau_limit: np.ndarray = field(default_factory=lambda: np.array([96.0, 156.0, 156.0] * 4, dtype=np.float32))
-    cmd: np.ndarray = field(default_factory=lambda: np.array([1.0, 0.0, 0.0], dtype=np.float32))
+    cmd: np.ndarray = field(default_factory=lambda: np.array([0.8, 0.0, 0.0], dtype=np.float32))
     perturb: Sim2SimPerturbCfg = field(default_factory=Sim2SimPerturbCfg)
 
 
-class DreamWaQSim2SimRunner:
-    def __init__(self, cfg: DreamWaQSim2SimCfg):
+class PolicyFullSim2SimRunner:
+    def __init__(self, cfg: PolicyFullSim2SimCfg):
         self.cfg = cfg
         self.model = mujoco.MjModel.from_xml_path(cfg.mujoco_model_path)
         self.data = mujoco.MjData(self.model)
         self.model.opt.timestep = cfg.dt
-
         self._device = torch.device("cpu")
-        self.cenet = load_dreamwaq_cenet_from_rsl_checkpoint(cfg.cenet_ckpt_path, device=self._device)
-
-        self.actor_sess = ort.InferenceSession(cfg.actor_onnx_path, providers=["CPUExecutionProvider"])
-        self.actor_input_name = self.actor_sess.get_inputs()[0].name
-        self.actor_output_name = self.actor_sess.get_outputs()[0].name
-        self.actor_input_shape = self.actor_sess.get_inputs()[0].shape
-
+        self.policy = torch.jit.load(cfg.policy_full_path, map_location=self._device).eval()
         self.gyro_sensor_slice = self._find_sensor_slice("imu_gyro", expected_dim=3)
 
         self.n_joints = len(self.cfg.joint_names)
+        self._proprio_dim = 45
         self.q_default = self._as_vector(self.cfg.q_default, "q_default")
         self.action_scale = self._as_vector(self.cfg.action_scale, "action_scale")
         self._rng = np.random.default_rng(self.cfg.perturb.seed)
@@ -128,7 +103,6 @@ class DreamWaQSim2SimRunner:
             raise ValueError(f"cmd must have shape (3,), got {self.cmd.shape}")
         if self.cfg.history_len <= 0:
             raise ValueError(f"history_len must be positive, got {self.cfg.history_len}")
-
         if self.n_joints != 12:
             raise ValueError(f"Expected 12 joints for this policy, got {self.n_joints}: {self.cfg.joint_names}")
 
@@ -143,7 +117,6 @@ class DreamWaQSim2SimRunner:
             "joint_vel": [],
             "actions": [],
         }
-        self._proprio_dim = 45
         self._enc_pos_bias, self._enc_vel_bias = sample_encoder_biases(
             self._rng,
             self.n_joints,
@@ -160,31 +133,31 @@ class DreamWaQSim2SimRunner:
             )
         else:
             self._action_queue = None
+
         self._reset_to_training_init()
-
-        vel_d = int(self.cenet.velocity_head.out_features)
-        lat_d = int(self.cenet.latent_mu_head.out_features)
-        expected_actor_in = self._proprio_dim + vel_d + lat_d
-        dim1 = self.actor_input_shape[1] if len(self.actor_input_shape) > 1 else None
-        if isinstance(dim1, int) and dim1 > 0 and dim1 != expected_actor_in:
-            raise ValueError(
-                f"Actor ONNX input dim {dim1} != expected {expected_actor_in} "
-                f"(proprio {self._proprio_dim} + v_est {vel_d} + z {lat_d}). "
-                "Ensure you exported the DreamWaQ MLP tail, not the full PPO policy."
-            )
-
-        cenet_hist_dim = int(self.cenet.encoder[0].in_features)
+        self._validate_policy_io()
         print(
-            "[INFO] DreamWaQ sim2sim: "
-            f"actor_onnx={cfg.actor_onnx_path}, cenet={cfg.cenet_ckpt_path}, "
-            f"actor_input={self.actor_input_shape}, cenet_hist_dim={cenet_hist_dim}, "
-            f"history_len={self.cfg.history_len}, kp={self.kp[0]:.1f}, kd={self.kd[0]:.1f}, "
+            "[INFO] policy_full sim2sim: "
+            f"policy_full={cfg.policy_full_path}, "
+            f"history_dim={self._proprio_dim * self.cfg.history_len}, "
+            f"current_dim={self._proprio_dim}, "
+            f"history_len={self.cfg.history_len}, "
+            f"kp={self.kp[0]:.1f}, kd={self.kd[0]:.1f}, "
+            f"init_base_height={self.cfg.init_base_height:.3f}, "
             f"motor_gain_scale={self._motor_gain_scale:.3f}, "
             f"obs_delay={d_obs}, action_delay={d_act}, "
             f"noise(gyro,grav,q,dq)="
             f"({self.cfg.perturb.noise_gyro},{self.cfg.perturb.noise_projected_gravity},"
             f"{self.cfg.perturb.noise_joint_pos},{self.cfg.perturb.noise_joint_vel})"
         )
+
+    def _validate_policy_io(self) -> None:
+        history = torch.zeros(1, self._proprio_dim * self.cfg.history_len, dtype=torch.float32, device=self._device)
+        current = torch.zeros(1, self._proprio_dim, dtype=torch.float32, device=self._device)
+        with torch.inference_mode():
+            out = self.policy(history, current)
+        if tuple(out.shape) != (1, self.n_joints):
+            raise ValueError(f"policy_full output shape mismatch: expected (1, {self.n_joints}), got {tuple(out.shape)}")
 
     def _as_vector(self, value: np.ndarray, name: str) -> np.ndarray:
         arr = np.asarray(value, dtype=np.float32)
@@ -219,13 +192,11 @@ class DreamWaQSim2SimRunner:
 
         for joint_name in self.cfg.joint_names:
             joint_id, model_joint_name = self._resolve_joint_id(joint_name)
-
             joint_type = int(self.model.jnt_type[joint_id])
             if joint_type not in (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE):
                 raise ValueError(
                     f"Joint '{model_joint_name}' must be hinge/slide (1 DoF), got type={joint_type}"
                 )
-
             qpos_idx.append(int(self.model.jnt_qposadr[joint_id]))
             qvel_idx.append(int(self.model.jnt_dofadr[joint_id]))
             joint_ids.append(joint_id)
@@ -251,18 +222,15 @@ class DreamWaQSim2SimRunner:
         sensor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SENSOR, sensor_name)
         if sensor_id < 0:
             return None
-
         sensor_dim = int(self.model.sensor_dim[sensor_id])
         if sensor_dim != expected_dim:
             raise ValueError(f"Sensor '{sensor_name}' must have dim={expected_dim}, got {sensor_dim}")
-
         sensor_adr = int(self.model.sensor_adr[sensor_id])
         return slice(sensor_adr, sensor_adr + sensor_dim)
 
     def _read_base_ang_vel_body(self) -> np.ndarray:
         if self.gyro_sensor_slice is not None:
             return self.data.sensordata[self.gyro_sensor_slice].astype(np.float32)
-
         return self.data.qvel[3:6].astype(np.float32)
 
     def _reset_to_training_init(self) -> None:
@@ -282,8 +250,7 @@ class DreamWaQSim2SimRunner:
             history.append(value.copy())
             del history[: -self.cfg.history_len]
 
-    def _build_cenet_history_obs(self) -> np.ndarray:
-        """Same layout as PPO sim2sim / training *_history concatenation (oldest→newest per term)."""
+    def _build_history_obs(self) -> np.ndarray:
         obs = np.concatenate(
             [
                 np.concatenate(self.obs_history["base_ang_vel"], axis=0),
@@ -297,34 +264,24 @@ class DreamWaQSim2SimRunner:
         ).astype(np.float32)
         expected_dim = self._proprio_dim * self.cfg.history_len
         if obs.shape[0] != expected_dim:
-            raise ValueError(f"CENet history dim mismatch: {obs.shape[0]} != {expected_dim}")
-        cenet_in = int(self.cenet.encoder[0].in_features)
-        if obs.shape[0] != cenet_in:
-            raise ValueError(
-                f"Stacked history length {obs.shape[0]} != CENet encoder input {cenet_in}. "
-                "Check history_len / proprio layout vs training."
-            )
+            raise ValueError(f"history obs dim mismatch: {obs.shape[0]} != {expected_dim}")
         return obs
 
-    def _build_current_proprio(self) -> np.ndarray:
-        """One step of PROPRIO_GROUPS (matches ``DreamWaQActor.current_groups`` order)."""
-        parts = [
-            self.obs_history["base_ang_vel"][-1],
-            self.obs_history["projected_gravity"][-1],
-            self.obs_history["velocity_commands"][-1],
-            self.obs_history["joint_pos"][-1],
-            self.obs_history["joint_vel"][-1],
-            self.obs_history["actions"][-1],
-        ]
-        out = np.concatenate(parts, axis=0).astype(np.float32)
-        if out.shape[0] != self._proprio_dim:
-            raise ValueError(f"current proprio dim {out.shape[0]} != {self._proprio_dim}")
-        return out
-
-    @staticmethod
-    def _build_actor_onnx_input(current_proprio: np.ndarray, v_est: np.ndarray, z: np.ndarray) -> np.ndarray:
-        """Matches ``DreamWaQActor.get_latent``: [current | v_est | z] (z is μ at inference)."""
-        return np.concatenate([current_proprio, v_est, z], axis=0).astype(np.float32)
+    def _build_current_obs(self) -> np.ndarray:
+        obs = np.concatenate(
+            [
+                self.obs_history["base_ang_vel"][-1],
+                self.obs_history["projected_gravity"][-1],
+                self.obs_history["velocity_commands"][-1],
+                self.obs_history["joint_pos"][-1],
+                self.obs_history["joint_vel"][-1],
+                self.obs_history["actions"][-1],
+            ],
+            axis=0,
+        ).astype(np.float32)
+        if obs.shape[0] != self._proprio_dim:
+            raise ValueError(f"current obs dim mismatch: {obs.shape[0]} != {self._proprio_dim}")
+        return obs
 
     def step(self, step_id: int) -> None:
         q = self.data.qpos[self.qpos_idx].astype(np.float32)
@@ -369,26 +326,17 @@ class DreamWaQSim2SimRunner:
         if step_id < warmup_steps:
             action = np.zeros(self.n_joints, dtype=np.float32)
         elif step_id % self.cfg.decimation == 0:
-            history_obs = self._build_cenet_history_obs()
+            history_obs = self._build_history_obs()
+            current_obs = self._build_current_obs()
             with torch.inference_mode():
-                history_tensor = torch.from_numpy(history_obs[None, :]).float().to(self._device)
-                v_est_t, z_t = self.cenet(history_tensor)
-
-            v_est_np = v_est_t.cpu().numpy()[0].astype(np.float32)
-            z_np = z_t.cpu().numpy()[0].astype(np.float32)
-            current = self._build_current_proprio()
-            actor_obs = self._build_actor_onnx_input(current, v_est_np, z_np)
-
-            raw_action = self.actor_sess.run(
-                [self.actor_output_name],
-                {self.actor_input_name: actor_obs[None, :]},
-            )[0][0].astype(np.float32)
+                history_t = torch.from_numpy(history_obs[None, :]).float().to(self._device)
+                current_t = torch.from_numpy(current_obs[None, :]).float().to(self._device)
+                raw_action = self.policy(history_t, current_t).cpu().numpy()[0].astype(np.float32)
 
             if raw_action.shape != (self.n_joints,):
                 raise ValueError(
                     f"Policy output shape mismatch: expected ({self.n_joints},), got {raw_action.shape}"
                 )
-
             if not np.all(np.isfinite(raw_action)):
                 raise RuntimeError(f"Policy output NaN/Inf at step {step_id}: {raw_action}")
 
@@ -403,7 +351,6 @@ class DreamWaQSim2SimRunner:
             action = self.last_action
 
         q_target = self.q_default + action * self.action_scale
-
         tau_raw = self.kp * (q_target - q) + self.kd * (0.0 - dq)
 
         if not np.all(np.isfinite(tau_raw)):

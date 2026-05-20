@@ -1,0 +1,22 @@
+scene_xml: /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml
+# scene_xml: /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/dog_flat.xml
+policy_full: /home/sen/wy/dog_main/robot_lab/logs/rsl_rl/dolanga1_rough_dreamwaq/2026-05-13_17-33-33_initial/exported/policy_full.pt
+bundle_yaml_reference: /home/sen/wy/dog_main/robot_lab/logs/rsl_rl/dolanga1_rough_dreamwaq/2026-05-13_17-33-33_initial/exported/sim2real_config.yaml
+
+runtime:
+  sim_duration: 120.0
+  dt: 0.005
+  decimation: 4
+  history_len: 10
+  warmup_seconds: 0.0
+  init_base_height: 0.47
+
+control:
+  q_default: [0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6]
+  action_scale: [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25]
+  kp: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+  kd: [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]
+  tau_limit: [96.0, 156.0, 156.0, 96.0, 156.0, 156.0, 96.0, 156.0, 156.0, 96.0, 156.0, 156.0]
+
+commands:
+  startup_cmd: [0.8, 0.0, 0.0]
