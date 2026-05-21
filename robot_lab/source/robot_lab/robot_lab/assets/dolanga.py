@@ -55,10 +55,10 @@ DOLANGA1_CFG = ArticulationCfg(
             effort_limit=96.0,
             saturation_effort=96.0,
             velocity_limit=23.0,
-            # stiffness=40.0,
-            # damping=1.0,
-            stiffness=100.0,
-            damping=1.5,
+            # Slightly softer and more damped than the original setting to reduce twitchiness
+            # while preserving tracking authority for locomotion.
+            stiffness=80.0,
+            damping=2.0,
             friction=0.0,
         ),
         "thigh": DCMotorCfg(
@@ -66,8 +66,8 @@ DOLANGA1_CFG = ArticulationCfg(
             effort_limit=156.0,
             saturation_effort=156.0,
             velocity_limit=23.0,
-            stiffness=100.0,
-            damping=1.5,
+            stiffness=80.0,
+            damping=2.0,
             friction=0.0,
         ),
         "calf": DCMotorCfg(
@@ -75,8 +75,8 @@ DOLANGA1_CFG = ArticulationCfg(
             effort_limit=156.0,
             saturation_effort=156.0,
             velocity_limit=14.0,
-            stiffness=100.0,
-            damping=1.5,
+            stiffness=80.0,
+            damping=2.0,
             friction=0.0,
         ),
     },

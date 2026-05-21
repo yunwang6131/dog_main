@@ -18,8 +18,8 @@ from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import (
     create_obsgroup_class,
 )
 
-# Diagonal trot: LF/RH in phase, RF/LH in opposite phase (paper Sec. III-B, T=0.72 s).
-_TROT_PERIOD = 0.72
+# Diagonal trot: LF/RH in phase, RF/LH in opposite phase.
+_TROT_PERIOD = 0.68
 _TROT_PHASE_OFFSETS = [0.0, 0.5, 0.5, 0.0]  # LF, RF, LH, RH
 _FOOT_BODY_NAMES = ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
 _FOOT_SENSOR_CFG = SceneEntityCfg("contact_forces", body_names=_FOOT_BODY_NAMES)
@@ -64,10 +64,10 @@ _BARRIER_FOOT_CLEARANCE_PARAMS = {
     "sensor_cfg": _FOOT_SENSOR_CFG,
     "asset_cfg": _FOOT_ASSET_CFG,
     "terrain_sensor_cfgs": _FOOT_TERRAIN_SENSOR_CFGS,
-    "p_des": 0.15,
+    "p_des": 0.12,
     "d_lower_gait": -0.6,
-    "d_lower_clearance": -0.08,
-    "d_upper_clearance": 1.0,
+    "d_lower_clearance": -0.06,
+    "d_upper_clearance": 0.40,
     "delta": 0.01,
     "alpha": 0.1,
     "command_name": "base_velocity",
@@ -95,8 +95,8 @@ _BARRIER_BODY_HEIGHT_PARAMS = {
     "front_terrain_sensor_cfgs": _FRONT_TERRAIN_SENSOR_CFGS,
     "hind_terrain_sensor_cfgs": _HIND_TERRAIN_SENSOR_CFGS,
     # Scaled for Dolanga1 (~0.47 m standing); paper Table I targets HOUND-scale heights.
-    "front_bounds": (0.18, 0.38),
-    "hind_bounds": (0.18, 0.38),
+    "front_bounds": (0.37, 0.47),
+    "hind_bounds": (0.37, 0.47), 
     "front_delta": 0.04,
     "hind_delta": 0.04,
     "alpha": 0.1,
