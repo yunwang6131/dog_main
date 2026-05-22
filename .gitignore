@@ -12,6 +12,8 @@ wandb/
 
 # Models / checkpoints
 models/
+!robot_lab/source/robot_lab/robot_lab/third_party/rsl_rl_dreamwaq/models/
+!robot_lab/source/robot_lab/robot_lab/third_party/rsl_rl_barrier_dual/models/
 *.pt
 *.onnx
 
