@@ -9,5 +9,10 @@ python scripts/reinforcement_learning/rsl_rl/train.py --task=RobotLab-Isaac-Velo
 ```bash
 python scripts/reinforcement_learning/rsl_rl/train.py --task RobotLab-Isaac-Velocity-Rough-Dolanga1-DreamWaQ-v0 --headless --logger wandb --log_project_name dog_Dwaq --run_name initial
 ```
+```bash
+/home/dl/sim/IsaacLab/_isaac_sim/kit/python/bin/python3 scripts/reinforcement_learning/rsl_rl/play.py --task RobotLab-Isaac-Velocity-Rough-Dolanga1-DreamWaQ-v0
+```
 
-# 断点重训练
+```bash
+/home/dl/sim/IsaacLab/_isaac_sim/kit/python/bin/python3 -m pip install -e .
+```
