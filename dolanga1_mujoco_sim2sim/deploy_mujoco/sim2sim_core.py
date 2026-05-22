@@ -15,11 +15,20 @@ class Sim2SimCfg:
     history_len: int = 10
     warmup_seconds: float = 0.0
     init_base_height: float = 0.47
-    gait_period: float = 0.72
+    gait_period: float = 0.68
     stand_threshold: float = 0.2
     base_body_name: str = "base_link"
     foot_body_names: list[str] = field(
         default_factory=lambda: ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
+    )
+    body_name_aliases: dict[str, str] = field(
+        default_factory=lambda: {
+            "base_link": "base",
+            "LF_foot_link": "LF_FOOT",
+            "RF_foot_link": "RF_FOOT",
+            "LH_foot_link": "LH_FOOT",
+            "RH_foot_link": "RH_FOOT",
+        }
     )
 
     mujoco_model_path: str = "path/to/scene.xml"
@@ -59,7 +68,8 @@ class Sim2SimCfg:
     )
     q_default: np.ndarray = field(
         default_factory=lambda: np.array(
-            [0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6], dtype=np.float32
+            [0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38],
+            dtype=np.float32,
         )
     )
     action_scale: np.ndarray = field(
@@ -67,8 +77,8 @@ class Sim2SimCfg:
             [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25], dtype=np.float32
         )
     )
-    kp: np.ndarray = field(default_factory=lambda: np.array([100.0] * 12, dtype=np.float32))
-    kd: np.ndarray = field(default_factory=lambda: np.array([1.5] * 12, dtype=np.float32))
+    kp: np.ndarray = field(default_factory=lambda: np.array([80.0] * 12, dtype=np.float32))
+    kd: np.ndarray = field(default_factory=lambda: np.array([2.0] * 12, dtype=np.float32))
     tau_limit: np.ndarray = field(default_factory=lambda: np.array([96.0, 156.0, 156.0] * 4, dtype=np.float32))
     cmd: np.ndarray = field(default_factory=lambda: np.array([1.0, 0.0, 0.0], dtype=np.float32))
 
@@ -227,10 +237,20 @@ class Sim2SimRunner:
 
     def _resolve_body_id(self, body_name: str) -> int:
         body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, body_name)
-        if body_id < 0:
-            available = [mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i) for i in range(self.model.nbody)]
-            raise ValueError(f"Body '{body_name}' not found in model. Available bodies: {available}")
-        return int(body_id)
+        if body_id >= 0:
+            return int(body_id)
+
+        alias = self.cfg.body_name_aliases.get(body_name)
+        if alias is not None:
+            body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, alias)
+            if body_id >= 0:
+                return int(body_id)
+
+        available = [mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i) for i in range(self.model.nbody)]
+        raise ValueError(
+            f"Body '{body_name}' not found in model: {self.cfg.mujoco_model_path}. "
+            f"Available bodies: {available}"
+        )
 
     def _build_body_indices(self, body_names: list[str]) -> np.ndarray:
         return np.asarray([self._resolve_body_id(body_name) for body_name in body_names], dtype=np.int32)

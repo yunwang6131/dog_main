@@ -3,41 +3,42 @@ sim_duration: 120.0
 dt: 0.005
 decimation: 2
 warmup_seconds: 0.0
+history_len: 10
+init_base_height: 0.47
+gait_period: 0.68
+stand_threshold: 0.2
 
 # Set these before running
-# mujoco_model_path: /home/wangyun/dog_main/dolanga1_mujoco_sim2sim/resources/dog_stair.xml
-mujoco_model_path: /home/wangyun/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml
-onnx_path: /home/wangyun/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-12_22-57-51_test_run_1/exported/policy.onnx
+mujoco_model_path: /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/Dolanga1.xml
+onnx_path: /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_barrier_dual/2026-05-22_13-29-57_test/exported/policy.onnx
 
 # Commanded velocity [vx, vy, wz]
 cmd: [1.0, 0.0, 0.0]
 
 # Joint order must match policy training order
 joint_names:
-	- LF_hip_joint
-	- LF_thigh_joint
-	- LF_calf_joint
-	- RF_hip_joint
-	- RF_thigh_joint
-	- RF_calf_joint
-	- LH_hip_joint
-	- LH_thigh_joint
-	- LH_calf_joint
-	- RH_hip_joint
-	- RH_thigh_joint
-	- RH_calf_joint
+  - LF_hip_joint
+  - LF_thigh_joint
+  - LF_calf_joint
+  - RF_hip_joint
+  - RF_thigh_joint
+  - RF_calf_joint
+  - LH_hip_joint
+  - LH_thigh_joint
+  - LH_calf_joint
+  - RH_hip_joint
+  - RH_thigh_joint
+  - RH_calf_joint
 
 # Default joint positions used by the trained policy
-q_default: [0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6]
+q_default: [0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38]
 
 # Per-joint action scales from training config
 action_scale: [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25]
 
 # PD gains used for torque conversion in sim2sim
-# kp: [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0]
-kp: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
-# kd: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-kd: [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]
+kp: [80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0]
+kd: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
 
 # Torque limits [hip, thigh, calf] x 4
 tau_limit: [96.0, 156.0, 156.0, 96.0, 156.0, 156.0, 96.0, 156.0, 156.0, 96.0, 156.0, 156.0]

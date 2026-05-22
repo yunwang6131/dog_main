@@ -18,8 +18,10 @@
 PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_dreamwaq_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_17-33-33_initial/exported/policy.onnx --cenet /home/sen/wy/dog_main/robot_lab/logs/rsl_rl/dolanga1_rough_dreamwaq/2026-05-13_17-33-33_initial/exported/cenet.pt
 ```
 
-# 跑PPO
+# 跑 BarrierDual
 ```bash
-PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py   --load_model /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/resources/a1_scene.xml   --policy /home/sen/wy/dog_main/dolanga1_mujoco_sim2sim/models/2026-05-13_15-27-00_change_urdf/exported/policy.onnx
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
+  --load_model /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/Dolanga1.xml \
+  --policy /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_barrier_dual/2026-05-22_13-29-57_test/exported/policy.onnx \
+  --cmd_x 1.0 --cmd_y 0.0 --cmd_yaw 0.0
 ```
-

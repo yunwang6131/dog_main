@@ -106,7 +106,7 @@ _BARRIER_VELOCITY_TRACKING_PARAMS = {
     "command_name": "base_velocity",
     "asset_cfg": SceneEntityCfg("robot"),
     "vel_bounds": (-0.4, 0.4),
-    "ang_bounds": (-0.4, 0.4),
+    "ang_bounds": (-0.4, 0.4), 
     "delta": 0.2,
     "alpha": 0.1,
 }
@@ -142,9 +142,9 @@ _PAPER_STANDARD_REWARD_PARAMS = {
     "ang_vel_weight": 1.5,
     "neg_exp_scale": 0.2,
     "torque_weight": 2.5e-5,
-    "action_rate_weight": 0.03,
+    "action_rate_weight": 0.04, # 0.03 change for smooth
     "foot_slip_weight": 0.3,
-    "foot_position_weight": 0.5,
+    "foot_position_weight": 0.8, # 0.5 change for smooth
     "front_hind_balance_weight": 1.0,
     "use_orientation_penalty": False,
     "orientation_weight": 1.0,

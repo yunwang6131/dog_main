@@ -47,7 +47,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.front_depth_camera = None
         self.scene.front_depth_camera_flip = None
         # self.scene.terrain.max_init_terrain_level = 0
-        self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.15)
+        self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.08)
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
 
@@ -56,6 +56,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # Keep canonical observation group names expected by trainer,
         # but swap selected groups to noisy variants for policy robustness.
         self.observations.base_ang_vel = copy.deepcopy(self.observations.base_ang_vel_with_noise)
+        self.observations.projected_gravity = copy.deepcopy(self.observations.projected_gravity_with_noise)
         self.observations.joint_pos = copy.deepcopy(self.observations.joint_pos_with_noise)
         self.observations.joint_vel = copy.deepcopy(self.observations.joint_vel_with_noise)
 
@@ -98,8 +99,8 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
                 "x": (-0.5, 0.5),
                 "y": (-0.5, 0.5),
                 "z": (0.0, 0.2),
-                "roll": (0, 0),
-                "pitch": (0, 0),
+                "roll": (-0.05, 0.05),
+                "pitch": (-0.05, 0.05),
                 "yaw": (-3.14, 3.14),
             },
             "velocity_range": {
@@ -123,6 +124,8 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.events.randomize_actuator_gains.params["stiffness_distribution_params"] = (0.8, 1.2)
         self.events.randomize_actuator_gains.params["damping_distribution_params"] = (0.8, 1.2)
         self.events.randomize_actuator_gains.params["distribution"] = "log_uniform"
+        self.events.randomize_reset_joints.params["position_range"] = (0.9, 1.1)
+        self.events.randomize_reset_joints.params["velocity_range"] = (-0.1, 0.1)
         # ------------------------------Rewards------------------------------
         # General
         self.rewards.is_terminated.weight = 0

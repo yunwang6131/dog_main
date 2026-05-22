@@ -43,9 +43,9 @@ def main() -> None:
         viewer.cam.distance = 5.0
         viewer.cam.elevation = -20
         viewer.cam.azimuth = 120
-        viewer.cam.lookat[:] = runner.data.qpos[:3]
         for step in range(sim_steps):
             runner.step(step)
+            viewer.cam.lookat[:] = runner.data.qpos[:3]
             viewer.sync()
 
 

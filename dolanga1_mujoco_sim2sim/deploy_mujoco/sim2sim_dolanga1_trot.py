@@ -13,7 +13,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--load_model", type=str, required=True, help="Path to MuJoCo scene xml.")
     parser.add_argument("--policy", type=str, required=True, help="Path to policy.onnx.")
     parser.add_argument("--sim_duration", type=float, default=120.0)
-    parser.add_argument("--cmd_x", type=float, default=0.5, help="Commanded forward velocity.")
+    parser.add_argument("--cmd_x", type=float, default=1.0, help="Commanded forward velocity.")
     parser.add_argument("--cmd_y", type=float, default=0.0, help="Commanded lateral velocity.")
     parser.add_argument("--cmd_yaw", type=float, default=0.0, help="Commanded yaw velocity.")
     return parser.parse_args()
@@ -36,4 +36,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
