@@ -6,26 +6,27 @@ from isaaclab.utils import configclass
 from isaaclab_rl.rsl_rl import RslRlMLPModelCfg, RslRlOnPolicyRunnerCfg, RslRlPpoAlgorithmCfg
 
 
-ACTOR_OBS_GROUPS = [
+PROPRIO_GROUPS = [
+    "base_ang_vel",
+    "projected_gravity",
+    "velocity_commands",
+    "joint_pos",
+    "joint_vel",
+    "actions",
+]
+
+HISTORY_GROUPS = [
     "base_ang_vel_history",
     "projected_gravity_history",
     "velocity_commands_history",
     "joint_pos_history",
     "joint_vel_history",
     "actions_history",
-    "foot_positions_body",
-    "phase",
-    "stand_mode",
 ]
 
 CRITIC_OBS_GROUPS = [
     "base_lin_vel",
-    "base_ang_vel_history",
-    "projected_gravity_history",
-    "velocity_commands_history",
-    "joint_pos_history",
-    "joint_vel_history",
-    "actions_history",
+    *HISTORY_GROUPS,
     "foot_positions_body",
     "phase",
     "stand_mode",
@@ -35,25 +36,31 @@ CRITIC_OBS_GROUPS = [
 
 
 @configclass
-class BarrierEstimatorActorCfg(RslRlMLPModelCfg):
-    class_name: str = "robot_lab.third_party.rsl_rl_barrier_dual.models:BarrierEstimatorActor"
+class BarrierDreamWaQActorCfg(RslRlMLPModelCfg):
+    class_name: str = "robot_lab.third_party.rsl_rl_barrier_dual.models:BarrierDreamWaQActor"
 
-    estimator_input_groups: list[str] = ACTOR_OBS_GROUPS
+    history_groups: list[str] = HISTORY_GROUPS
+    current_groups: list[str] = PROPRIO_GROUPS
     velocity_target_group: str = "base_lin_vel"
-    foot_contact_target_group: str = "foot_contact_state"
-    terrain_target_group: str = "height_scan_feet"
-    estimator_hidden_dims: list[int] = [256, 128]
-    estimator_activation: str = "elu"
+    reconstruction_target_groups: list[str] = PROPRIO_GROUPS
+    latent_dim: int = 16
+    velocity_dim: int = 3
+    encoder_hidden_dims: list[int] = [512, 256]
+    decoder_hidden_dims: list[int] = [256, 512]
+    beta_kl: float = 0.01
     velocity_loss_weight: float = 1.0
-    foot_contact_loss_weight: float = 1.0
-    terrain_loss_weight: float = 1.0
+    reconstruction_loss_weight: float = 1.0
+    kl_loss_weight: float = 1.0
+    logvar_min: float = -10.0
+    logvar_max: float = 4.0
 
 
 @configclass
 class BarrierDualAlgorithmCfg(RslRlPpoAlgorithmCfg):
     class_name: str = "robot_lab.third_party.rsl_rl_barrier_dual.ppo_barrier_dual:BarrierDualPPO"
-    surrogate_barrier_weight: float = 0.5
+    surrogate_barrier_weight: float = 0.4  #0.5
     estimator_loss_coef: float = 1.0
+    dreamwaq_next_obs_groups: list[str] = PROPRIO_GROUPS
 
 
 @configclass
@@ -65,12 +72,12 @@ class Dolanga1RoughBarrierDualDebugRunnerCfg(RslRlOnPolicyRunnerCfg):
     experiment_name = "dolanga1_rough_barrier_dual"
 
     obs_groups = {
-        "actor": ACTOR_OBS_GROUPS,
+        "actor": PROPRIO_GROUPS,
         "critic": CRITIC_OBS_GROUPS,
     }
 
-    actor = BarrierEstimatorActorCfg(
-        hidden_dims=[256, 128, 64],
+    actor = BarrierDreamWaQActorCfg(
+        hidden_dims=[512, 256, 128],
         activation="elu",
         obs_normalization=False,
         distribution_cfg=RslRlMLPModelCfg.GaussianDistributionCfg(init_std=1.0),

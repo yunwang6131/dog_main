@@ -19,7 +19,7 @@ from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import (
 )
 
 # Diagonal trot: LF/RH in phase, RF/LH in opposite phase.
-_TROT_PERIOD = 0.68
+_TROT_PERIOD = 0.62 #0.68
 _TROT_PHASE_OFFSETS = [0.0, 0.5, 0.5, 0.0]  # LF, RF, LH, RH
 _FOOT_BODY_NAMES = ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
 _FOOT_SENSOR_CFG = SceneEntityCfg("contact_forces", body_names=_FOOT_BODY_NAMES)

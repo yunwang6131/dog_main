@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import mujoco
 import numpy as np
 import onnxruntime as ort
+import torch
 
 
 @dataclass
@@ -32,7 +33,7 @@ class Sim2SimCfg:
     )
 
     mujoco_model_path: str = "path/to/scene.xml"
-    onnx_path: str = "path/to/policy.onnx"
+    onnx_path: str = "path/to/policy_full.pt"
 
     joint_names: list[str] = field(
         default_factory=lambda: [
@@ -119,10 +120,17 @@ class Sim2SimRunner:
         self.model = mujoco.MjModel.from_xml_path(cfg.mujoco_model_path)
         self.data = mujoco.MjData(self.model)
         self.model.opt.timestep = cfg.dt
-        self.sess = ort.InferenceSession(cfg.onnx_path, providers=["CPUExecutionProvider"])
-        self.input_name = self.sess.get_inputs()[0].name
-        self.output_name = self.sess.get_outputs()[0].name
-        self.input_shape = self.sess.get_inputs()[0].shape
+        self._torch_policy = None
+        if cfg.onnx_path.endswith(".pt"):
+            self._torch_policy = torch.jit.load(cfg.onnx_path, map_location="cpu").eval()
+            self.input_shape = ["history", "current"]
+            self.input_name = ""
+            self.output_name = ""
+        else:
+            self.sess = ort.InferenceSession(cfg.onnx_path, providers=["CPUExecutionProvider"])
+            self.input_name = self.sess.get_inputs()[0].name
+            self.output_name = self.sess.get_outputs()[0].name
+            self.input_shape = self.sess.get_inputs()[0].shape
         self.gyro_sensor_slice = self._find_sensor_slice("imu_gyro", expected_dim=3)
 
         self.n_joints = len(self.cfg.joint_names)
@@ -142,8 +150,6 @@ class Sim2SimRunner:
             raise ValueError(f"Expected 12 joints for this policy, got {self.n_joints}: {self.cfg.joint_names}")
 
         self.qpos_idx, self.qvel_idx, self.joint_ids = self._build_joint_indices()
-        self.base_body_id = self._resolve_body_id(self.cfg.base_body_name)
-        self.foot_body_ids = self._build_body_indices(self.cfg.foot_body_names)
         self.actuator_idx = self._build_actuator_indices(self.joint_ids)
         self.last_action = np.zeros(self.n_joints, dtype=np.float32)
         self.obs_history: dict[str, list[np.ndarray]] = {
@@ -155,9 +161,12 @@ class Sim2SimRunner:
             "actions": [],
         }
         self._proprio_frame_dim = 45
-        self._paper_actor_extra_dim = 12 + 2 + 1
-        self._actor_obs_dim = self._proprio_frame_dim * self.cfg.history_len + self._paper_actor_extra_dim
-        onnx_obs_dim = self.input_shape[1] if len(self.input_shape) > 1 and isinstance(self.input_shape[1], int) else None
+        self._history_obs_dim = self._proprio_frame_dim * self.cfg.history_len
+        self._current_obs_dim = self._proprio_frame_dim
+        self._actor_obs_dim = self._history_obs_dim + self._current_obs_dim
+        onnx_obs_dim = None
+        if self._torch_policy is None:
+            onnx_obs_dim = self.input_shape[1] if len(self.input_shape) > 1 and isinstance(self.input_shape[1], int) else None
         if onnx_obs_dim is not None and onnx_obs_dim != self._actor_obs_dim:
             raise ValueError(
                 f"Actor ONNX input dim {onnx_obs_dim} != expected {self._actor_obs_dim}. "
@@ -282,12 +291,6 @@ class Sim2SimRunner:
         self.data.qpos[self.qpos_idx] = self.q_default
         mujoco.mj_forward(self.model, self.data)
 
-    def _compute_feet_positions_body(self, rot_bw: np.ndarray) -> np.ndarray:
-        base_pos = self.data.xpos[self.base_body_id].astype(np.float32)
-        feet_pos_w = self.data.xpos[self.foot_body_ids].astype(np.float32)
-        feet_pos_body = (rot_bw @ (feet_pos_w - base_pos).T).T
-        return feet_pos_body.reshape(-1).astype(np.float32)
-
     def _compute_phase_obs(self) -> tuple[np.ndarray, np.ndarray]:
         cmd_norm = float(np.linalg.norm(self.cmd))
         stand_mode = np.array([1.0 if cmd_norm < self.cfg.stand_threshold else 0.0], dtype=np.float32)
@@ -305,15 +308,10 @@ class Sim2SimRunner:
             history.append(value.copy())
             del history[: -self.cfg.history_len]
 
-    def _build_actor_obs(self) -> np.ndarray:
-        # Match training obs_groups order:
+    def _build_history_obs(self) -> np.ndarray:
+        # Match training history_groups order:
         # base_ang_vel_history, projected_gravity_history, velocity_commands_history,
-        # joint_pos_history, joint_vel_history, actions_history, foot_positions_body,
-        # phase, stand_mode.
-        base_quat_wxyz = self.data.qpos[3:7].astype(np.float32)
-        rot_bw = quat_to_rotmat_wxyz(base_quat_wxyz).T
-        feet_positions_body = self._compute_feet_positions_body(rot_bw)
-        phase_obs, stand_mode = self._compute_phase_obs()
+        # joint_pos_history, joint_vel_history, actions_history.
         obs = np.concatenate(
             [
                 np.concatenate(self.obs_history["base_ang_vel"], axis=0),
@@ -322,15 +320,40 @@ class Sim2SimRunner:
                 np.concatenate(self.obs_history["joint_pos"], axis=0),
                 np.concatenate(self.obs_history["joint_vel"], axis=0),
                 np.concatenate(self.obs_history["actions"], axis=0),
-                feet_positions_body,
-                phase_obs,
-                stand_mode,
             ],
             axis=0,
         ).astype(np.float32)
-        if obs.shape[0] != self._actor_obs_dim:
-            raise ValueError(f"Actor obs dim mismatch: {obs.shape[0]} != {self._actor_obs_dim}")
+        if obs.shape[0] != self._history_obs_dim:
+            raise ValueError(f"History obs dim mismatch: {obs.shape[0]} != {self._history_obs_dim}")
         return obs
+
+    def _build_current_obs(self) -> np.ndarray:
+        obs = np.concatenate(
+            [
+                self.obs_history["base_ang_vel"][-1],
+                self.obs_history["projected_gravity"][-1],
+                self.obs_history["velocity_commands"][-1],
+                self.obs_history["joint_pos"][-1],
+                self.obs_history["joint_vel"][-1],
+                self.obs_history["actions"][-1],
+            ],
+            axis=0,
+        ).astype(np.float32)
+        if obs.shape[0] != self._current_obs_dim:
+            raise ValueError(f"Current obs dim mismatch: {obs.shape[0]} != {self._current_obs_dim}")
+        return obs
+
+    def _run_policy(self, history_obs: np.ndarray, current_obs: np.ndarray) -> np.ndarray:
+        if self._torch_policy is not None:
+            with torch.inference_mode():
+                history_tensor = torch.from_numpy(history_obs[None, :]).float()
+                current_tensor = torch.from_numpy(current_obs[None, :]).float()
+                out = self._torch_policy(history_tensor, current_tensor)
+            return out.cpu().numpy()[0].astype(np.float32)
+
+        obs = np.concatenate([history_obs, current_obs], axis=0).astype(np.float32)
+        raw_action = self.sess.run([self.output_name], {self.input_name: obs[None, :]})[0][0]
+        return raw_action.astype(np.float32)
 
     def step(self, step_id: int) -> None:
         q = self.data.qpos[self.qpos_idx].astype(np.float32)
@@ -358,11 +381,9 @@ class Sim2SimRunner:
         if step_id < warmup_steps:
             action = np.zeros(self.n_joints, dtype=np.float32)
         elif step_id % self.cfg.decimation == 0:
-            obs = self._build_actor_obs()
-            raw_action = self.sess.run(
-                [self.output_name],
-                {self.input_name: obs[None, :]}
-            )[0][0].astype(np.float32)
+            history_obs = self._build_history_obs()
+            current_obs = self._build_current_obs()
+            raw_action = self._run_policy(history_obs, current_obs)
 
             if raw_action.shape != (self.n_joints,):
                 raise ValueError(

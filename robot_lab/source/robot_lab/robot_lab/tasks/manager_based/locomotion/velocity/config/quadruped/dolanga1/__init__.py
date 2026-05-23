@@ -32,17 +32,6 @@ gym.register(
 )
 
 gym.register(
-    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-DreamWaQ-v0",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.dreamwaq_env_cfg:Dolanga1DreamWaQRoughEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_dreamwaq_cfg:Dolanga1RoughDreamWaQRunnerCfg",
-        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
-    },
-)
-
-gym.register(
     id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-v0",
     entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
     disable_env_checker=True,

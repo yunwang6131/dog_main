@@ -10,7 +10,7 @@ stand_threshold: 0.2
 
 # Set these before running
 mujoco_model_path: /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/Dolanga1.xml
-onnx_path: /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_barrier_dual/2026-05-22_13-29-57_test/exported/policy.onnx
+onnx_path: /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_barrier_dual/<run>/exported/policy_full.pt
 
 # Commanded velocity [vx, vy, wz]
 cmd: [1.0, 0.0, 0.0]

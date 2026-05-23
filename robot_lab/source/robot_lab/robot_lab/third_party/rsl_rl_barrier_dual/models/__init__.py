@@ -1,6 +1,13 @@
-# Copyright (c) 2024-2026 Ziqi Fan
-# SPDX-License-Identifier: Apache-2.0
+from .barrier_dreamwaq_actor import (
+    BarrierDreamWaQActor,
+    BarrierDreamWaQDeployWrapper,
+    BarrierDreamWaQLoss,
+    export_barrier_dreamwaq_merged_jit_from_runner,
+)
 
-from .barrier_estimator_actor import BarrierEstimatorActor, BarrierEstimatorLosses
-
-__all__ = ["BarrierEstimatorActor", "BarrierEstimatorLosses"]
+__all__ = [
+    "BarrierDreamWaQActor",
+    "BarrierDreamWaQDeployWrapper",
+    "BarrierDreamWaQLoss",
+    "export_barrier_dreamwaq_merged_jit_from_runner",
+]

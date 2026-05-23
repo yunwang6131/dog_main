@@ -18,7 +18,6 @@ from rsl_rl.models import MLPModel
 from rsl_rl.utils import resolve_callable, resolve_obs_groups, resolve_optimizer
 
 from robot_lab.third_party.rsl_rl_barrier_dual.barrier_rollout_storage import BarrierDualRolloutStorage
-from robot_lab.third_party.rsl_rl_barrier_dual.models import BarrierEstimatorLosses
 
 # Isaac Lab's deprecation helper only migrates actor/critic, not critic_barrier.
 _LEGACY_MLP_KWARGS = ("stochastic", "init_noise_std", "noise_std_type", "state_dependent_std")
@@ -46,6 +45,7 @@ class BarrierDualPPO(PPO):
         *,
         surrogate_barrier_weight: float = 0.5,
         estimator_loss_coef: float = 1.0,
+        dreamwaq_next_obs_groups: list[str] | None = None,
         **kwargs,
     ) -> None:
         if kwargs.get("rnd_cfg"):
@@ -67,6 +67,7 @@ class BarrierDualPPO(PPO):
         self.surrogate_barrier_weight = float(surrogate_barrier_weight)
         self.surrogate_standard_weight = 1.0 - self.surrogate_barrier_weight
         self.estimator_loss_coef = float(estimator_loss_coef)
+        self.dreamwaq_next_obs_groups = list(dreamwaq_next_obs_groups or [])
 
     def act(self, obs: TensorDict) -> torch.Tensor:
         self.transition.hidden_states = (self.actor.get_hidden_state(), self.critic.get_hidden_state())
@@ -98,6 +99,8 @@ class BarrierDualPPO(PPO):
         self.transition.rewards_barrier = rb_t.clone()
         self.transition.rewards = rs_t + rb_t
         self.transition.dones = dones
+        for group in self.dreamwaq_next_obs_groups:
+            self.transition.observations[group + "_next"] = obs[group].clone()
 
         if "time_outs" in extras:
             to = extras["time_outs"].unsqueeze(-1).to(self.device).float()
@@ -154,10 +157,10 @@ class BarrierDualPPO(PPO):
         mean_value_loss_barrier = 0.0
         mean_surrogate_loss = 0.0
         mean_entropy = 0.0
-        mean_estimator_loss = 0.0
-        mean_estimator_velocity_loss = 0.0
-        mean_estimator_foot_contact_loss = 0.0
-        mean_estimator_terrain_loss = 0.0
+        mean_cenet_loss = 0.0
+        mean_cenet_velocity_loss = 0.0
+        mean_cenet_reconstruction_loss = 0.0
+        mean_cenet_kl_loss = 0.0
 
         generator = self.storage.mini_batch_generator(self.num_mini_batches, self.num_learning_epochs)
 
@@ -241,11 +244,11 @@ class BarrierDualPPO(PPO):
 
             loss = surrogate_loss + self.value_loss_coef * (value_loss + value_loss_b) - self.entropy_coef * entropy.mean()
 
-            estimator_losses: BarrierEstimatorLosses | None = None
-            compute_estimator_losses = getattr(self.actor, "compute_estimator_losses", None)
-            if callable(compute_estimator_losses):
-                estimator_losses = compute_estimator_losses(batch.observations)
-                loss = loss + self.estimator_loss_coef * estimator_losses.total
+            cenet_losses = None
+            compute_cenet_loss = getattr(self.actor, "compute_cenet_loss", None)
+            if callable(compute_cenet_loss):
+                cenet_losses = compute_cenet_loss(batch.observations)
+                loss = loss + self.estimator_loss_coef * cenet_losses.total
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -262,21 +265,21 @@ class BarrierDualPPO(PPO):
             mean_value_loss_barrier += value_loss_b.item()
             mean_surrogate_loss += surrogate_loss.item()
             mean_entropy += entropy.mean().item()
-            if estimator_losses is not None:
-                mean_estimator_loss += estimator_losses.total.item()
-                mean_estimator_velocity_loss += estimator_losses.velocity.item()
-                mean_estimator_foot_contact_loss += estimator_losses.foot_contact.item()
-                mean_estimator_terrain_loss += estimator_losses.terrain.item()
+            if cenet_losses is not None:
+                mean_cenet_loss += cenet_losses.total.item()
+                mean_cenet_velocity_loss += cenet_losses.velocity.item()
+                mean_cenet_reconstruction_loss += cenet_losses.reconstruction.item()
+                mean_cenet_kl_loss += cenet_losses.kl.item()
 
         n = self.num_learning_epochs * self.num_mini_batches
         mean_value_loss /= n
         mean_value_loss_barrier /= n
         mean_surrogate_loss /= n
         mean_entropy /= n
-        mean_estimator_loss /= n
-        mean_estimator_velocity_loss /= n
-        mean_estimator_foot_contact_loss /= n
-        mean_estimator_terrain_loss /= n
+        mean_cenet_loss /= n
+        mean_cenet_velocity_loss /= n
+        mean_cenet_reconstruction_loss /= n
+        mean_cenet_kl_loss /= n
 
         self.storage.clear()
 
@@ -286,11 +289,11 @@ class BarrierDualPPO(PPO):
             "surrogate": mean_surrogate_loss,
             "entropy": mean_entropy,
         }
-        if hasattr(self.actor, "compute_estimator_losses"):
-            loss_dict["estimator"] = mean_estimator_loss
-            loss_dict["estimator_velocity"] = mean_estimator_velocity_loss
-            loss_dict["estimator_foot_contact"] = mean_estimator_foot_contact_loss
-            loss_dict["estimator_terrain"] = mean_estimator_terrain_loss
+        if hasattr(self.actor, "compute_cenet_loss"):
+            loss_dict["cenet"] = mean_cenet_loss
+            loss_dict["cenet_velocity"] = mean_cenet_velocity_loss
+            loss_dict["cenet_reconstruction"] = mean_cenet_reconstruction_loss
+            loss_dict["cenet_kl"] = mean_cenet_kl_loss
         return loss_dict
 
     def save(self) -> dict:
@@ -349,6 +352,10 @@ class BarrierDualPPO(PPO):
         actor_class: type[MLPModel] = resolve_callable(cfg["actor"].pop("class_name"))  # type: ignore[assignment]
         critic_class: type[MLPModel] = resolve_callable(cfg["critic"].pop("class_name"))  # type: ignore[assignment]
         critic_barrier_class: type[MLPModel] = resolve_callable(cfg["critic_barrier"].pop("class_name"))  # type: ignore[assignment]
+
+        next_obs_groups = list(cfg["algorithm"].get("dreamwaq_next_obs_groups", []))
+        for group in next_obs_groups:
+            obs[group + "_next"] = obs[group].clone()
 
         cfg["obs_groups"] = resolve_obs_groups(obs, cfg["obs_groups"], ["actor", "critic"])
         cfg["algorithm"] = resolve_rnd_config(cfg["algorithm"], obs, cfg["obs_groups"], env)
