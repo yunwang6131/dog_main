@@ -75,7 +75,7 @@ class Sim2SimCfg:
     )
     action_scale: np.ndarray = field(
         default_factory=lambda: np.array(
-            [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25], dtype=np.float32
+            [0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25], dtype=np.float32
         )
     )
     kp: np.ndarray = field(default_factory=lambda: np.array([80.0] * 12, dtype=np.float32))

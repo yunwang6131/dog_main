@@ -1,4 +1,0 @@
-<mujoco model="Lite3_stair">
-    <include file="a1.xml"/>
-    <include file="stair.xml"/>
-</mujoco>

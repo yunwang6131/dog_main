@@ -1,4 +1,0 @@
-<mujoco model="Lite3_flat">
-    <include file="Dolanga1.xml"/>
-    <include file="flat.xml"/>
-</mujoco>

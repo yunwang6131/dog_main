@@ -7,7 +7,7 @@ python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --device cuda:0 \
   --logger wandb \
   --log_project_name barrier \
-  --run_name kp80_kd20
+  --run_name kp80_kd2
 
 
 python scripts/reinforcement_learning/rsl_rl/play.py --task RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-v0

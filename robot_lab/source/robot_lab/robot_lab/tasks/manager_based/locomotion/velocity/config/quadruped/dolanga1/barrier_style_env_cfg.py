@@ -325,6 +325,9 @@ def _tune_for_barrier_training(cfg) -> None:
             reward.weight = 0.0
 
     cfg.rewards.is_terminated.weight = -5.0
+    # 加一点微调顺滑程度，沿用rough的设置微调
+    cfg.rewards.lin_vel_z_l2.weight = -3.0
+    cfg.rewards.ang_vel_xy_l2.weight = -0.1
     cfg.terminations.illegal_contact.params["sensor_cfg"].body_names = [
         ".*_hip_link",
         ".*_thigh_link",

@@ -47,7 +47,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.front_depth_camera = None
         self.scene.front_depth_camera_flip = None
         # self.scene.terrain.max_init_terrain_level = 0
-        self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.17) #0.08
+        self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.08)
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
 
@@ -89,7 +89,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         # ------------------------------Actions------------------------------
         # reduce action scale
-        self.actions.joint_pos.scale = {".*_hip_joint": 0.5, "^(?!.*_hip_joint).*": 0.25}
+        self.actions.joint_pos.scale = {".*_hip_joint": 0.4, "^(?!.*_hip_joint).*": 0.25} # hip 0.5
         self.actions.joint_pos.clip = {".*": (-100.0, 100.0)}
         self.actions.joint_pos.joint_names = self.joint_names
 
@@ -231,6 +231,6 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # ------------------------------Commands------------------------------
         # self.commands.base_velocity.ranges.lin_vel_x = (0, 2.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (0, 0)
-        self.commands.base_velocity.ranges.lin_vel_x = (0, 2.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0, 0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0, 1.5)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.8, 0.8)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)
