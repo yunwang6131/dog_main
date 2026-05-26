@@ -113,9 +113,9 @@ from rl_utils import camera_follow
 
 
 def export_dreamwaq_cenet_weights(runner, export_model_dir: str) -> None:
-    """Save CENet-only weights for MuJoCo sim2sim (encoder + v_est + latent mu heads).
+    """Save CENet-only weights for MuJoCo sim2sim.
 
-    ``policy.onnx`` / ``policy.pt`` from RSL-RL only contain the MLP tail; sim2sim loads ``cenet.pt`` alongside them.
+    This is kept for legacy split deployments. Current Dolanga1 sim2sim uses the merged ``policy_full.pt`` export.
     """
     actor = getattr(runner.alg, "actor", None)
     if actor is None:
@@ -124,16 +124,18 @@ def export_dreamwaq_cenet_weights(runner, export_model_dir: str) -> None:
             actor = getattr(policy, "actor", None)
     if actor is None:
         return
-    if not (
-        hasattr(actor, "encoder")
-        and hasattr(actor, "velocity_head")
-        and hasattr(actor, "latent_mu_head")
-    ):
+    if not (hasattr(actor, "encoder") and hasattr(actor, "velocity_head")):
         return
     os.makedirs(export_model_dir, exist_ok=True)
     sd = actor.state_dict()
-    prefix = ("encoder.", "velocity_head.", "latent_mu_head.")
-    cenet_sd = {k: v.detach().cpu().clone() for k, v in sd.items() if k.startswith(prefix)}
+    prefix = ["encoder.", "velocity_head."]
+    if hasattr(actor, "context_mu_head"):
+        prefix.append("context_mu_head.")
+    elif hasattr(actor, "latent_mu_head"):
+        prefix.append("latent_mu_head.")
+    if hasattr(actor, "terrain_latent_head"):
+        prefix.append("terrain_latent_head.")
+    cenet_sd = {k: v.detach().cpu().clone() for k, v in sd.items() if k.startswith(tuple(prefix))}
     if not cenet_sd:
         return
     path = os.path.join(export_model_dir, "cenet.pt")

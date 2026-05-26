@@ -8,7 +8,6 @@ import mujoco.viewer
 import numpy as np
 
 from deploy_mujoco.sim2sim_core import Sim2SimCfg, Sim2SimRunner, quat_to_rotmat_wxyz
-from mujoco.glfw import glfw
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,7 +79,7 @@ def main() -> None:
     args = parse_args()
     cfg = Sim2SimCfg(
         mujoco_model_path=args.load_model,
-        onnx_path=args.policy,
+        policy_path=args.policy,
         sim_duration=args.sim_duration,
         cmd=np.array([args.cmd_x, args.cmd_y, args.cmd_yaw], dtype=np.float32),
     )

@@ -161,6 +161,7 @@ class BarrierDualPPO(PPO):
         mean_cenet_velocity_loss = 0.0
         mean_cenet_reconstruction_loss = 0.0
         mean_cenet_kl_loss = 0.0
+        mean_cenet_terrain_loss = 0.0
 
         generator = self.storage.mini_batch_generator(self.num_mini_batches, self.num_learning_epochs)
 
@@ -270,6 +271,7 @@ class BarrierDualPPO(PPO):
                 mean_cenet_velocity_loss += cenet_losses.velocity.item()
                 mean_cenet_reconstruction_loss += cenet_losses.reconstruction.item()
                 mean_cenet_kl_loss += cenet_losses.kl.item()
+                mean_cenet_terrain_loss += cenet_losses.terrain.item()
 
         n = self.num_learning_epochs * self.num_mini_batches
         mean_value_loss /= n
@@ -280,6 +282,7 @@ class BarrierDualPPO(PPO):
         mean_cenet_velocity_loss /= n
         mean_cenet_reconstruction_loss /= n
         mean_cenet_kl_loss /= n
+        mean_cenet_terrain_loss /= n
 
         self.storage.clear()
 
@@ -294,6 +297,7 @@ class BarrierDualPPO(PPO):
             loss_dict["cenet_velocity"] = mean_cenet_velocity_loss
             loss_dict["cenet_reconstruction"] = mean_cenet_reconstruction_loss
             loss_dict["cenet_kl"] = mean_cenet_kl_loss
+            loss_dict["cenet_terrain"] = mean_cenet_terrain_loss
         return loss_dict
 
     def save(self) -> dict:

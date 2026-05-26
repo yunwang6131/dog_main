@@ -23,6 +23,7 @@ class BarrierDreamWaQLoss:
     velocity: torch.Tensor
     reconstruction: torch.Tensor
     kl: torch.Tensor
+    terrain: torch.Tensor
 
 
 class BarrierDreamWaQDeployWrapper(nn.Module):
@@ -37,7 +38,8 @@ class BarrierDreamWaQDeployWrapper(nn.Module):
 
         self.encoder = copy.deepcopy(actor.encoder)
         self.velocity_head = copy.deepcopy(actor.velocity_head)
-        self.latent_mu_head = copy.deepcopy(actor.latent_mu_head)
+        self.context_mu_head = copy.deepcopy(actor.context_mu_head)
+        self.terrain_latent_head = copy.deepcopy(actor.terrain_latent_head)
         self.obs_normalizer = copy.deepcopy(actor.obs_normalizer)
         self.mlp = copy.deepcopy(actor.mlp)
         if actor.distribution is not None:
@@ -48,8 +50,9 @@ class BarrierDreamWaQDeployWrapper(nn.Module):
     def forward(self, history: torch.Tensor, current: torch.Tensor) -> torch.Tensor:
         features = self.encoder(history)
         velocity = self.velocity_head(features)
-        latent = self.latent_mu_head(features)
-        x = torch.cat([current, velocity, latent], dim=-1)
+        context_latent = self.context_mu_head(features)
+        terrain_latent = self.terrain_latent_head(features)
+        x = torch.cat([current, velocity, context_latent, terrain_latent], dim=-1)
         x = self.obs_normalizer(x)
         out = self.mlp(x)
         return self.deterministic_output(out)
@@ -79,7 +82,7 @@ class BarrierDreamWaQActor(MLPModel):
     """BarrierDual actor with a DreamWaQ-style CENet.
 
     PPO acts on current proprioception, while the actor internally encodes
-    proprioceptive history into a velocity estimate and latent context.
+    proprioceptive history into velocity, context, and terrain latents.
     """
 
     def __init__(
@@ -93,12 +96,16 @@ class BarrierDreamWaQActor(MLPModel):
         velocity_target_group: str = "base_lin_vel",
         reconstruction_target_groups: list[str] | None = None,
         latent_dim: int = 16,
+        terrain_latent_dim: int = 8,
+        terrain_target_group: str = "height_scan_feet",
+        terrain_stats_dim: int = 20,
         velocity_dim: int = 3,
         encoder_hidden_dims: list[int] | tuple[int, ...] = (512, 256),
         decoder_hidden_dims: list[int] | tuple[int, ...] = (256, 512),
         beta_kl: float = 0.01,
         velocity_loss_weight: float = 1.0,
         reconstruction_loss_weight: float = 1.0,
+        terrain_loss_weight: float = 0.25,
         kl_loss_weight: float = 1.0,
         logvar_min: float = -10.0,
         logvar_max: float = 4.0,
@@ -112,10 +119,14 @@ class BarrierDreamWaQActor(MLPModel):
         self.velocity_target_group = velocity_target_group
         self.reconstruction_target_groups = list(reconstruction_target_groups or current_groups)
         self.latent_dim = int(latent_dim)
+        self.terrain_latent_dim = int(terrain_latent_dim)
+        self.terrain_target_group = terrain_target_group
+        self.terrain_stats_dim = int(terrain_stats_dim)
         self.velocity_dim = int(velocity_dim)
         self.beta_kl = float(beta_kl)
         self.velocity_loss_weight = float(velocity_loss_weight)
         self.reconstruction_loss_weight = float(reconstruction_loss_weight)
+        self.terrain_loss_weight = float(terrain_loss_weight)
         self.kl_loss_weight = float(kl_loss_weight)
         self.logvar_min = float(logvar_min)
         self.logvar_max = float(logvar_max)
@@ -138,8 +149,15 @@ class BarrierDreamWaQActor(MLPModel):
         self.encoder = MLP(self.history_dim, int(encoder_hidden_dims[-1]), encoder_hidden_dims, activation)
         encoder_out_dim = int(encoder_hidden_dims[-1])
         self.velocity_head = nn.Linear(encoder_out_dim, self.velocity_dim)
-        self.latent_mu_head = nn.Linear(encoder_out_dim, self.latent_dim)
-        self.latent_logvar_head = nn.Linear(encoder_out_dim, self.latent_dim)
+        self.context_mu_head = nn.Linear(encoder_out_dim, self.latent_dim)
+        self.context_logvar_head = nn.Linear(encoder_out_dim, self.latent_dim)
+        self.terrain_latent_head = nn.Linear(encoder_out_dim, self.terrain_latent_dim)
+        self.terrain_aux_head = MLP(
+            self.terrain_latent_dim,
+            self.terrain_stats_dim,
+            decoder_hidden_dims,
+            activation,
+        )
         self.reconstruction_decoder = MLP(
             self.velocity_dim + self.latent_dim,
             self.reconstruction_dim,
@@ -161,34 +179,55 @@ class BarrierDreamWaQActor(MLPModel):
         return dim
 
     def _get_latent_dim(self) -> int:
-        return self.current_dim + self.velocity_dim + self.latent_dim
+        return self.current_dim + self.velocity_dim + self.latent_dim + self.terrain_latent_dim
 
     def _cat_obs(self, obs: TensorDict, groups: list[str]) -> torch.Tensor:
         return torch.cat([obs[group] for group in groups], dim=-1)
 
     def _encode_context(
         self, obs: TensorDict, sample_latent: bool
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         history = self._cat_obs(obs, self.history_groups)
         features = self.encoder(history)
         velocity = self.velocity_head(features)
-        mu = self.latent_mu_head(features)
-        logvar = torch.clamp(self.latent_logvar_head(features), self.logvar_min, self.logvar_max)
+        mu = self.context_mu_head(features)
+        logvar = torch.clamp(self.context_logvar_head(features), self.logvar_min, self.logvar_max)
         if sample_latent:
             std = torch.exp(0.5 * logvar)
             latent = mu + torch.randn_like(std) * std
         else:
             latent = mu
-        return velocity, latent, mu, logvar
+        terrain_latent = self.terrain_latent_head(features)
+        return velocity, latent, mu, logvar, terrain_latent
+
+    @staticmethod
+    def _terrain_stats_from_scan(height_scan: torch.Tensor) -> torch.Tensor:
+        if height_scan.shape[-1] % 4 != 0:
+            raise ValueError(
+                f"height_scan_feet dim must be divisible by 4 for per-foot terrain stats, got {height_scan.shape[-1]}."
+            )
+        feet = height_scan.reshape(height_scan.shape[0], 4, height_scan.shape[-1] // 4)
+        mean = feet.mean(dim=-1)
+        std = feet.std(dim=-1, unbiased=False)
+        min_height = feet.min(dim=-1).values
+        max_height = feet.max(dim=-1).values
+        front_hind_mean = mean[:, :2].mean(dim=-1, keepdim=True) - mean[:, 2:].mean(dim=-1, keepdim=True)
+        left_right_mean = mean[:, [0, 2]].mean(dim=-1, keepdim=True) - mean[:, [1, 3]].mean(dim=-1, keepdim=True)
+        global_std = height_scan.std(dim=-1, unbiased=False, keepdim=True)
+        global_range = height_scan.max(dim=-1, keepdim=True).values - height_scan.min(dim=-1, keepdim=True).values
+        return torch.cat(
+            [mean, std, min_height, max_height, front_hind_mean, left_right_mean, global_std, global_range],
+            dim=-1,
+        )
 
     def get_latent(self, obs: TensorDict, masks: torch.Tensor | None = None, hidden_state=None) -> torch.Tensor:
         current = self._cat_obs(obs, self.current_groups)
-        velocity, latent, _, _ = self._encode_context(obs, sample_latent=False)
-        actor_latent = torch.cat([current, velocity, latent], dim=-1)
+        velocity, latent, _, _, terrain_latent = self._encode_context(obs, sample_latent=False)
+        actor_latent = torch.cat([current, velocity, latent, terrain_latent], dim=-1)
         return self.obs_normalizer(actor_latent)
 
     def compute_cenet_loss(self, obs: TensorDict) -> BarrierDreamWaQLoss:
-        velocity, latent, mu, logvar = self._encode_context(obs, sample_latent=True)
+        velocity, latent, mu, logvar, terrain_latent = self._encode_context(obs, sample_latent=True)
         velocity_target = obs[self.velocity_target_group]
         velocity_loss = F.mse_loss(velocity, velocity_target)
 
@@ -199,12 +238,24 @@ class BarrierDreamWaQActor(MLPModel):
 
         kl_per_sample = -0.5 * torch.sum(1.0 + logvar - mu.pow(2) - logvar.exp(), dim=-1)
         kl_loss = kl_per_sample.mean()
+
+        terrain_target = self._terrain_stats_from_scan(obs[self.terrain_target_group])
+        terrain_prediction = self.terrain_aux_head(terrain_latent)
+        terrain_loss = F.mse_loss(terrain_prediction, terrain_target)
+
         total = (
             self.velocity_loss_weight * velocity_loss
             + self.reconstruction_loss_weight * reconstruction_loss
+            + self.terrain_loss_weight * terrain_loss
             + self.kl_loss_weight * self.beta_kl * kl_loss
         )
-        return BarrierDreamWaQLoss(total=total, velocity=velocity_loss, reconstruction=reconstruction_loss, kl=kl_loss)
+        return BarrierDreamWaQLoss(
+            total=total,
+            velocity=velocity_loss,
+            reconstruction=reconstruction_loss,
+            kl=kl_loss,
+            terrain=terrain_loss,
+        )
 
     def as_jit(self) -> nn.Module:
         return BarrierDreamWaQDeployWrapper(self)

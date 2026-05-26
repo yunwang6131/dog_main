@@ -44,12 +44,16 @@ class BarrierDreamWaQActorCfg(RslRlMLPModelCfg):
     velocity_target_group: str = "base_lin_vel"
     reconstruction_target_groups: list[str] = PROPRIO_GROUPS
     latent_dim: int = 16
+    terrain_latent_dim: int = 8
+    terrain_target_group: str = "height_scan_feet"
+    terrain_stats_dim: int = 20
     velocity_dim: int = 3
     encoder_hidden_dims: list[int] = [512, 256]
     decoder_hidden_dims: list[int] = [256, 512]
     beta_kl: float = 0.01
     velocity_loss_weight: float = 1.0
     reconstruction_loss_weight: float = 1.0
+    terrain_loss_weight: float = 0.25
     kl_loss_weight: float = 1.0
     logvar_min: float = -10.0
     logvar_max: float = 4.0

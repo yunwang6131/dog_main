@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 
 import mujoco
 import numpy as np
-import onnxruntime as ort
 import torch
 
 
@@ -16,8 +15,6 @@ class Sim2SimCfg:
     history_len: int = 10
     warmup_seconds: float = 0.0
     init_base_height: float = 0.47
-    gait_period: float = 0.68
-    stand_threshold: float = 0.2
     base_body_name: str = "base_link"
     foot_body_names: list[str] = field(
         default_factory=lambda: ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
@@ -33,7 +30,8 @@ class Sim2SimCfg:
     )
 
     mujoco_model_path: str = "path/to/scene.xml"
-    onnx_path: str = "path/to/policy_full.pt"
+    policy_path: str = "path/to/policy_full.pt"
+    debug_print: bool = True
 
     joint_names: list[str] = field(
         default_factory=lambda: [
@@ -120,17 +118,13 @@ class Sim2SimRunner:
         self.model = mujoco.MjModel.from_xml_path(cfg.mujoco_model_path)
         self.data = mujoco.MjData(self.model)
         self.model.opt.timestep = cfg.dt
-        self._torch_policy = None
-        if cfg.onnx_path.endswith(".pt"):
-            self._torch_policy = torch.jit.load(cfg.onnx_path, map_location="cpu").eval()
-            self.input_shape = ["history", "current"]
-            self.input_name = ""
-            self.output_name = ""
-        else:
-            self.sess = ort.InferenceSession(cfg.onnx_path, providers=["CPUExecutionProvider"])
-            self.input_name = self.sess.get_inputs()[0].name
-            self.output_name = self.sess.get_outputs()[0].name
-            self.input_shape = self.sess.get_inputs()[0].shape
+        if not cfg.policy_path.endswith(".pt"):
+            raise ValueError(
+                "Dolanga1 sim2sim expects merged TorchScript policy_full.pt. "
+                "Export with export_barrier_dreamwaq_merged_jit_from_runner and pass that file as --policy."
+            )
+        self._torch_policy = torch.jit.load(cfg.policy_path, map_location="cpu").eval()
+        self.input_shape = ["history", "current"]
         self.gyro_sensor_slice = self._find_sensor_slice("imu_gyro", expected_dim=3)
 
         self.n_joints = len(self.cfg.joint_names)
@@ -164,18 +158,10 @@ class Sim2SimRunner:
         self._history_obs_dim = self._proprio_frame_dim * self.cfg.history_len
         self._current_obs_dim = self._proprio_frame_dim
         self._actor_obs_dim = self._history_obs_dim + self._current_obs_dim
-        onnx_obs_dim = None
-        if self._torch_policy is None:
-            onnx_obs_dim = self.input_shape[1] if len(self.input_shape) > 1 and isinstance(self.input_shape[1], int) else None
-        if onnx_obs_dim is not None and onnx_obs_dim != self._actor_obs_dim:
-            raise ValueError(
-                f"Actor ONNX input dim {onnx_obs_dim} != expected {self._actor_obs_dim}. "
-                "Check sim2sim obs layout against BarrierDual training obs_groups."
-            )
         self._reset_to_training_init()
         print(
             "[INFO] sim2sim cfg: "
-            f"onnx_input={self.input_shape}, "
+            f"policy_input={self.input_shape}, "
             f"actor_obs_dim={self._actor_obs_dim}, "
             f"history_len={self.cfg.history_len}, "
             f"warmup_seconds={self.cfg.warmup_seconds}, "
@@ -291,14 +277,6 @@ class Sim2SimRunner:
         self.data.qpos[self.qpos_idx] = self.q_default
         mujoco.mj_forward(self.model, self.data)
 
-    def _compute_phase_obs(self) -> tuple[np.ndarray, np.ndarray]:
-        cmd_norm = float(np.linalg.norm(self.cmd))
-        stand_mode = np.array([1.0 if cmd_norm < self.cfg.stand_threshold else 0.0], dtype=np.float32)
-        if stand_mode[0] > 0.5:
-            return np.zeros(2, dtype=np.float32), stand_mode
-        phase = 2.0 * np.pi * (self.data.time / self.cfg.gait_period)
-        return np.array([np.sin(phase), np.cos(phase)], dtype=np.float32), stand_mode
-
     def _update_obs_history(self, frame: dict[str, np.ndarray]) -> None:
         for name, value in frame.items():
             history = self.obs_history[name]
@@ -344,16 +322,11 @@ class Sim2SimRunner:
         return obs
 
     def _run_policy(self, history_obs: np.ndarray, current_obs: np.ndarray) -> np.ndarray:
-        if self._torch_policy is not None:
-            with torch.inference_mode():
-                history_tensor = torch.from_numpy(history_obs[None, :]).float()
-                current_tensor = torch.from_numpy(current_obs[None, :]).float()
-                out = self._torch_policy(history_tensor, current_tensor)
-            return out.cpu().numpy()[0].astype(np.float32)
-
-        obs = np.concatenate([history_obs, current_obs], axis=0).astype(np.float32)
-        raw_action = self.sess.run([self.output_name], {self.input_name: obs[None, :]})[0][0]
-        return raw_action.astype(np.float32)
+        with torch.inference_mode():
+            history_tensor = torch.from_numpy(history_obs[None, :]).float()
+            current_tensor = torch.from_numpy(current_obs[None, :]).float()
+            out = self._torch_policy(history_tensor, current_tensor)
+        return out.cpu().numpy()[0].astype(np.float32)
 
     def step(self, step_id: int) -> None:
         q = self.data.qpos[self.qpos_idx].astype(np.float32)
@@ -395,7 +368,6 @@ class Sim2SimRunner:
 
             action = np.clip(raw_action, -10.0, 10.0)
 
-            # 注意：last_action 一定存 clip 后的 action
             self.last_action = action.copy()
         else:
             action = self.last_action
@@ -413,7 +385,7 @@ class Sim2SimRunner:
         tau = np.clip(tau_raw, -self.tau_limit, self.tau_limit)
         self.data.ctrl[:] = 0.0
         self.data.ctrl[self.actuator_idx] = tau
-        if step_id % 100 == 0:
+        if self.cfg.debug_print and step_id % 100 == 0:
             print(
                 f"[step {step_id}] "
                 f"z={self.data.qpos[2]:.3f}, "

@@ -25,7 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--velocity_arrow_scale", type=float, default=0.6)
 
     parser.add_argument("--mouse_force_body", type=str, default="base")
-    parser.add_argument("--mouse_force_gain", type=float, default=10.0)
+    parser.add_argument("--mouse_force_gain", type=float, default=40.0)
     parser.add_argument("--mouse_force_max", type=float, default=200.0)
     parser.add_argument("--mouse_force_decay", type=float, default=0.95)
 
@@ -267,7 +267,7 @@ def main() -> None:
 
     cfg = Sim2SimCfg(
         mujoco_model_path=args.load_model,
-        onnx_path=args.policy,
+        policy_path=args.policy,
         sim_duration=args.sim_duration,
         cmd=np.array([args.cmd_x, args.cmd_y, args.cmd_yaw], dtype=np.float32),
     )
