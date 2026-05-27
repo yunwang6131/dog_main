@@ -43,6 +43,16 @@ gym.register(
 )
 
 gym.register(
+    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-KiVi-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.kivi_env_cfg:Dolanga1RoughKiviEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_kivi_cfg:Dolanga1RoughKiviPPORunnerCfg",
+    },
+)
+
+gym.register(
     id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-Debug-v0",
     entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
     disable_env_checker=True,

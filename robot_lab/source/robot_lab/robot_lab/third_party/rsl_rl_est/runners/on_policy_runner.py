@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import inspect
 import statistics
 import time
 import torch
@@ -16,13 +17,25 @@ from tensordict import TensorDict
 import rsl_rl
 from rsl_rl.env import VecEnv
 from rsl_rl.utils import resolve_obs_groups
-from rsl_rl.modules import resolve_symmetry_config, resolve_rnd_config
+try:
+    from rsl_rl.modules import resolve_rnd_config, resolve_symmetry_config
+except ImportError:
+    try:
+        from rsl_rl.utils import resolve_rnd_config, resolve_symmetry_config
+    except ImportError:
+
+        def resolve_symmetry_config(alg_cfg, env):
+            return alg_cfg
+
+        def resolve_rnd_config(alg_cfg, obs, obs_groups, env):
+            return alg_cfg
+
 try:
     from rsl_rl.utils import store_code_state
 except ImportError:
     store_code_state = None  # 兼容 legged_lab 等无此 API 的 rsl_rl 分支
 
-from robot_lab.third_party.rsl_rl_est.algorithms import PPOEst, Dreamer
+from robot_lab.third_party.rsl_rl_est.algorithms import PPOEst
 from robot_lab.third_party.rsl_rl_est.modules import ActorCriticEst
 
 
@@ -398,7 +411,7 @@ class OnPolicyRunnerEst:
         # Set device to the local rank
         torch.cuda.set_device(self.gpu_local_rank)
 
-    def _construct_algorithm(self, obs: TensorDict) -> PPOEst | Dreamer:
+    def _construct_algorithm(self, obs: TensorDict):
         """Construct the actor-critic algorithm."""
 
         # Resolve symmetry config
@@ -425,7 +438,7 @@ class OnPolicyRunnerEst:
             obs[key + "_norm"] = obs[key].clone()
         # Resolve RND config
         self.alg_cfg = resolve_rnd_config(self.alg_cfg, obs, self.cfg["obs_groups"], self.env)
-        actor_critic_class = eval(self.policy_cfg.pop("class_name"))
+        actor_critic_class = eval(self.policy_cfg.pop("class_name", "ActorCriticEst"))
         actor_critic: ActorCriticEst = actor_critic_class(
             obs, self.cfg["obs_groups"], self.env.num_actions, **self.policy_cfg
         ).to(self.device)
@@ -435,8 +448,12 @@ class OnPolicyRunnerEst:
         # 兼容 legged_lab 等 fork：其 RandomNetworkDistillation 不接受 use_data_augmentation，从 rnd_cfg 中移除
         if "rnd_cfg" in self.alg_cfg and self.alg_cfg["rnd_cfg"] is not None and isinstance(self.alg_cfg["rnd_cfg"], dict):
             self.alg_cfg["rnd_cfg"] = {k: v for k, v in self.alg_cfg["rnd_cfg"].items() if k != "use_data_augmentation"}
-        alg_class = eval(self.alg_cfg.pop("class_name"))
-        alg: PPOEst | Dreamer = alg_class(actor_critic, device=self.device, **self.alg_cfg, multi_gpu_cfg=self.multi_gpu_cfg)
+        alg_class = eval(self.alg_cfg.pop("class_name", "PPOEst"))
+        alg_signature = inspect.signature(alg_class.__init__)
+        alg_kwargs = dict(self.alg_cfg)
+        alg_kwargs["multi_gpu_cfg"] = self.multi_gpu_cfg
+        alg_kwargs = {key: value for key, value in alg_kwargs.items() if key in alg_signature.parameters}
+        alg = alg_class(actor_critic, device=self.device, **alg_kwargs)
 
         # Initialize the storage
         alg.init_storage(
@@ -460,12 +477,14 @@ class OnPolicyRunnerEst:
                 from rsl_rl.utils.neptune_utils import NeptuneSummaryWriter
 
                 self.writer = NeptuneSummaryWriter(log_dir=self.log_dir, flush_secs=10, cfg=self.cfg)
-                self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
+                if hasattr(self.writer, "log_config"):
+                    self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
             elif self.logger_type == "wandb":
                 from rsl_rl.utils.wandb_utils import WandbSummaryWriter
 
                 self.writer = WandbSummaryWriter(log_dir=self.log_dir, flush_secs=10, cfg=self.cfg)
-                self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
+                if hasattr(self.writer, "log_config"):
+                    self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
             elif self.logger_type == "tensorboard":
                 from torch.utils.tensorboard import SummaryWriter
 

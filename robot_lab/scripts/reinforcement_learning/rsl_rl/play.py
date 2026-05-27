@@ -153,16 +153,21 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent_cfg: RslRlBaseRunnerCfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else 64
 
-    # handle deprecated configurations
-    agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_version)
+    # handle deprecated configurations for stock RSL-RL configs only.
+    # EST configs carry custom estimator fields that the stock compatibility shim may drop.
+    is_est_runner = agent_cfg.class_name == "OnPolicyRunnerEst"
+    if not is_est_runner:
+        agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, installed_version)
 
     # set the environment seed
     # note: certain randomizations occur in the environment initialization so we set the seed here
     env_cfg.seed = agent_cfg.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
-    # spawn the robot randomly in the grid (instead of their terrain levels)
-    env_cfg.scene.terrain.max_init_terrain_level = None
+    # spawn the robot randomly in the grid (instead of their terrain levels).
+    # Keep EST/KiVi play on the easiest level first; visual sensors make play memory-heavy and
+    # hard random terrain can spawn robots inside raised mesh features before policy evaluation.
+    env_cfg.scene.terrain.max_init_terrain_level = 0 if is_est_runner else None
     # reduce the number of terrains to save memory
     if env_cfg.scene.terrain.terrain_generator is not None:
         env_cfg.scene.terrain.terrain_generator.num_rows = 5
@@ -242,6 +247,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # load previously trained model
     if agent_cfg.class_name == "OnPolicyRunner":
         runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+    elif is_est_runner:
+        from robot_lab.third_party.rsl_rl_est.runners.on_policy_runner import OnPolicyRunnerEst
+
+        runner = OnPolicyRunnerEst(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     elif agent_cfg.class_name == "DistillationRunner":
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     else:
@@ -254,7 +263,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # export the trained policy to JIT and ONNX formats
     export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
 
-    if version.parse(installed_version) >= version.parse("4.0.0"):
+    if is_est_runner:
+        print("[INFO] Skipping generic RSL-RL policy export for OnPolicyRunnerEst.")
+    elif version.parse(installed_version) >= version.parse("4.0.0"):
         # use the new export functions for rsl-rl >= 4.0.0
         runner.export_policy_to_jit(path=export_model_dir, filename="policy.pt")
         runner.export_policy_to_onnx(path=export_model_dir, filename="policy.onnx")
@@ -296,7 +307,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             # env stepping
             obs, _, dones, _ = env.step(actions)
             # reset recurrent states for episodes that have terminated
-            if version.parse(installed_version) >= version.parse("4.0.0"):
+            if is_est_runner:
+                runner.alg.policy.reset(dones)
+            elif version.parse(installed_version) >= version.parse("4.0.0"):
                 policy.reset(dones)
             else:
                 policy_nn.reset(dones)

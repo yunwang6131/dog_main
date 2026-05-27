@@ -1,7 +1,10 @@
 import torch
 import torch.nn as nn
 from .decoder import Decoder
-from rsl_rl.networks import MLP
+try:
+    from rsl_rl.networks import MLP
+except ImportError:
+    from rsl_rl.modules import MLP
 import torch.nn.functional as F
 
 

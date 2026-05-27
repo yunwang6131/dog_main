@@ -492,42 +492,46 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = True
 
-    # @configclass
-    # class FrontDepthCfg(ObsGroup):
-    #     front_depth_camera = ObsTerm(
-    #         func=mdp.image_with_history,
-    #         params={"sensor_cfg": SceneEntityCfg("front_depth_camera"),
-    #                 "data_type": "distance_to_image_plane",
-    #                 "img_shape": (60, 60),
-    #                 "clip_horizontal_from": 26,
-    #                 "clip_vertical_from": 0,
-    #                 "history_len": 2,
-    #                 "flip": False},
-    #         clip=(0.2, 2.0),
-    #         noise=Unoise(n_min=-0.05, n_max=0.05),
-    #         scale=1.0,
-    #     )
+    @configclass
+    class FrontDepthCfg(ObsGroup):
+        front_depth_camera = ObsTerm(
+            func=mdp.image_with_history,
+            params={
+                "sensor_cfg": SceneEntityCfg("front_depth_camera"),
+                "data_type": "distance_to_image_plane",
+                "img_shape": (60, 60),
+                "clip_horizontal_from": 26,
+                "clip_vertical_from": 0,
+                "history_len": 2,
+                "flip": False,
+            },
+            clip=(0.2, 2.0),
+            noise=Unoise(n_min=-0.05, n_max=0.05),
+            scale=1.0,
+        )
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
             self.concatenate_dim = 0
 
-    # @configclass
-    # class FrontDepthFlipCfg(ObsGroup):
-    #     front_depth_camera_flip = ObsTerm(
-    #         func=mdp.image_with_history,
-    #         params={"sensor_cfg": SceneEntityCfg("front_depth_camera_flip"),
-    #                 "data_type": "distance_to_image_plane",
-    #                 "img_shape": (60, 60),
-    #                 "clip_horizontal_from": 26,
-    #                 "clip_vertical_from": 0,
-    #                 "history_len": 2,
-    #                 "flip": True},
-    #         clip=(0.2, 2.0),
-    #         noise=Unoise(n_min=-0.05, n_max=0.05),
-    #         scale=1.0,
-    #     )
+    @configclass
+    class FrontDepthFlipCfg(ObsGroup):
+        front_depth_camera_flip = ObsTerm(
+            func=mdp.image_with_history,
+            params={
+                "sensor_cfg": SceneEntityCfg("front_depth_camera_flip"),
+                "data_type": "distance_to_image_plane",
+                "img_shape": (60, 60),
+                "clip_horizontal_from": 26,
+                "clip_vertical_from": 0,
+                "history_len": 2,
+                "flip": True,
+            },
+            clip=(0.2, 2.0),
+            noise=Unoise(n_min=-0.05, n_max=0.05),
+            scale=1.0,
+        )
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -582,6 +586,7 @@ class ObservationsCfg:
     projected_gravity_with_noise: ProjectedGravityWithNoiseCfg = ProjectedGravityWithNoiseCfg()
     joint_pos_with_noise: JointPosWithNoiseCfg = JointPosWithNoiseCfg()
     joint_vel_with_noise: JointVelWithNoiseCfg = JointVelWithNoiseCfg()
+    # Opt-in only. Vision tasks enable these groups explicitly after attaching camera sensors.
     # front_camera_depth: FrontDepthCfg = FrontDepthCfg()
     # front_camera_depth_flip: FrontDepthFlipCfg = FrontDepthFlipCfg()
     height_scan_feet: HeightScanFeetCfg = HeightScanFeetCfg()

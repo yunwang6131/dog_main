@@ -11,7 +11,10 @@ from tensordict import TensorDict
 from torch.distributions import Normal
 from typing import Any, NoReturn
 
-from rsl_rl.networks import MLP, EmpiricalNormalization
+try:
+    from rsl_rl.networks import EmpiricalNormalization, MLP
+except ImportError:
+    from rsl_rl.modules import EmpiricalNormalization, MLP
 from robot_lab.third_party.rsl_rl_est.modules.estimator import Estimator
 
 
@@ -217,8 +220,7 @@ class ActorCriticEst(nn.Module):
         return self.distribution.sample()
 
     def act_inference(self, obs: TensorDict, masks=None, hidden_state=None) -> torch.Tensor:
-        for obs_group in self.obs_groups["normalize"]:
-            obs.update({obs_group + '_norm': self.normalizer[obs_group](obs[obs_group])})
+        obs = self.normalize(obs, skip_missing=True)
         obs = self.estimator.encode_inference(obs, dones=masks, hidden_states=hidden_state)
         obs = self.get_actor_obs(obs)
         if self.state_dependent_std:
@@ -271,10 +273,14 @@ class ActorCriticEst(nn.Module):
         for obs_group in self.obs_groups["privilege_normalize"]:
             self.privlege_normalizer[obs_group].update(obs[obs_group])
 
-    def normalize(self, obs: TensorDict) -> TensorDict:
+    def normalize(self, obs: TensorDict, skip_missing: bool = False) -> TensorDict:
         for obs_group in self.obs_groups["normalize"]:
+            if skip_missing and obs_group not in obs:
+                continue
             obs.update({obs_group + '_norm': self.normalizer[obs_group](obs[obs_group])})
         for obs_group in self.obs_groups["privilege_normalize"]:
+            if skip_missing and obs_group not in obs:
+                continue
             obs.update({obs_group + '_norm': self.privlege_normalizer[obs_group](obs[obs_group])})
         return obs
 

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from tensordict import TensorDict
 from rsl_rl.algorithms.ppo import PPO
 from robot_lab.third_party.rsl_rl_est.modules import ActorCriticEst
@@ -52,26 +53,39 @@ class PPOEst(PPO):
             # Distributed training parameters
             multi_gpu_cfg: dict | None = None,
     ) -> None:
-        super().__init__(
-            policy,
-            num_learning_epochs,
-            num_mini_batches,
-            clip_param,
-            gamma,
-            lam,
-            value_loss_coef,
-            entropy_coef,
-            learning_rate,
-            max_grad_norm,
-            use_clipped_value_loss,
-            schedule,
-            desired_kl,
-            device,
-            normalize_advantage_per_mini_batch,
-            rnd_cfg,
-            symmetry_cfg,
-            multi_gpu_cfg,
-        )
+        # This EST fork uses a single ActorCriticEst policy, while newer rsl-rl PPO
+        # expects separate actor/critic/storage objects. Initialize the small subset
+        # of PPO state used by the overridden EST methods directly.
+        self.policy = policy.to(device)
+        self.device = device
+        self.is_multi_gpu = multi_gpu_cfg is not None
+        if multi_gpu_cfg is not None:
+            self.gpu_global_rank = multi_gpu_cfg["global_rank"]
+            self.gpu_world_size = multi_gpu_cfg["world_size"]
+        else:
+            self.gpu_global_rank = 0
+            self.gpu_world_size = 1
+
+        self.rnd = None
+        self.rnd_optimizer = None
+        self.symmetry = symmetry_cfg
+
+        self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
+
+        self.clip_param = clip_param
+        self.num_learning_epochs = num_learning_epochs
+        self.num_mini_batches = num_mini_batches
+        self.value_loss_coef = value_loss_coef
+        self.entropy_coef = entropy_coef
+        self.gamma = gamma
+        self.lam = lam
+        self.max_grad_norm = max_grad_norm
+        self.use_clipped_value_loss = use_clipped_value_loss
+        self.desired_kl = desired_kl
+        self.schedule = schedule
+        self.learning_rate = learning_rate
+        self.normalize_advantage_per_mini_batch = normalize_advantage_per_mini_batch
+
         self.obs_go_next = obs_go_next
         # Create rollout storage
         self.storage: RolloutStorageEst | None = None

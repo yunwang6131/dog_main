@@ -43,8 +43,32 @@ class RolloutStorageEst(RolloutStorage):
         if self.training_type == "rl":
             self.values[self.step].copy_(transition.values)
             self.actions_log_prob[self.step].copy_(transition.actions_log_prob.view(-1, 1))
+            if not hasattr(self, "mu"):
+                self.mu = torch.zeros(
+                    self.num_transitions_per_env, self.num_envs, *transition.action_mean.shape[1:], device=self.device
+                )
+                self.sigma = torch.zeros(
+                    self.num_transitions_per_env, self.num_envs, *transition.action_sigma.shape[1:], device=self.device
+                )
+            if self.distribution_params is None:
+                self.distribution_params = (
+                    torch.zeros(
+                        self.num_transitions_per_env,
+                        self.num_envs,
+                        *transition.action_mean.shape[1:],
+                        device=self.device,
+                    ),
+                    torch.zeros(
+                        self.num_transitions_per_env,
+                        self.num_envs,
+                        *transition.action_sigma.shape[1:],
+                        device=self.device,
+                    ),
+                )
             self.mu[self.step].copy_(transition.action_mean)
             self.sigma[self.step].copy_(transition.action_sigma)
+            self.distribution_params[0][self.step].copy_(transition.action_mean)
+            self.distribution_params[1][self.step].copy_(transition.action_sigma)
 
         # For RNN networks
         self._save_hidden_states(transition.hidden_states)
@@ -53,6 +77,45 @@ class RolloutStorageEst(RolloutStorage):
 
         # Increment the counter
         self.step += 1
+
+    def compute_returns(
+            self,
+            last_values: torch.Tensor,
+            gamma: float,
+            lam: float,
+            normalize_advantage: bool = True,
+    ) -> None:
+        """Compute GAE returns for rsl-rl versions that no longer expose this helper."""
+        advantage = torch.zeros_like(last_values)
+        for step in reversed(range(self.num_transitions_per_env)):
+            if step == self.num_transitions_per_env - 1:
+                next_values = last_values
+            else:
+                next_values = self.values[step + 1]
+            next_is_not_terminal = 1.0 - self.dones[step].float()
+            delta = self.rewards[step] + next_is_not_terminal * gamma * next_values - self.values[step]
+            advantage = delta + next_is_not_terminal * gamma * lam * advantage
+            self.returns[step] = advantage + self.values[step]
+
+        self.advantages = self.returns - self.values
+        if normalize_advantage:
+            self.advantages = (self.advantages - self.advantages.mean()) / (self.advantages.std() + 1e-8)
+
+    def mini_batch_generator(self, num_mini_batches: int, num_epochs: int = 8):
+        for batch in super().mini_batch_generator(num_mini_batches, num_epochs):
+            old_mu_batch, old_sigma_batch = batch.old_distribution_params
+            yield (
+                batch.observations,
+                batch.actions,
+                batch.values,
+                batch.advantages,
+                batch.returns,
+                batch.old_actions_log_prob,
+                old_mu_batch,
+                old_sigma_batch,
+                (None, None),
+                None,
+            )
 
     def _save_est_hidden_states(self, est_hidden_states):
         if est_hidden_states is None:
