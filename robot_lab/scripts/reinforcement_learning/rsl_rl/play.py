@@ -38,6 +38,20 @@ parser.add_argument(
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 parser.add_argument("--keyboard", action="store_true", default=False, help="Whether to use keyboard.")
+parser.add_argument(
+    "--kivi-ablate-depth",
+    "--kivi_ablate_depth",
+    choices=["none", "zero", "noise"],
+    default="none",
+    help="KiVi/EST only: ablate the front depth observation before policy inference.",
+)
+parser.add_argument(
+    "--kivi-ablate-visual-latent",
+    "--kivi_ablate_visual_latent",
+    choices=["none", "zero"],
+    default="none",
+    help="KiVi/EST only: ablate the visuospatial latent after visual encoding.",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -251,6 +265,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         from robot_lab.third_party.rsl_rl_est.runners.on_policy_runner import OnPolicyRunnerEst
 
         runner = OnPolicyRunnerEst(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+        runner.alg.policy.ablate_visual_latent = args_cli.kivi_ablate_visual_latent
     elif agent_cfg.class_name == "DistillationRunner":
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     else:
@@ -302,6 +317,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         start_time = time.time()
         # run everything in inference mode
         with torch.inference_mode():
+            if is_est_runner and args_cli.kivi_ablate_depth != "none" and "front_camera_depth" in obs:
+                if args_cli.kivi_ablate_depth == "zero":
+                    obs["front_camera_depth"].zero_()
+                elif args_cli.kivi_ablate_depth == "noise":
+                    obs["front_camera_depth"].normal_(mean=1.0, std=0.5)
             # agent stepping
             actions = policy(obs)
             # env stepping

@@ -38,6 +38,8 @@ class Estimator(nn.Module):
                     enc_cfg['network_cfg']['shared_network']].encoder
             enc_class = self.resolve_encoder(enc_type)
             self.encoders[enc_name] = enc_class(obs, **enc_cfg).to(device)
+            if getattr(self.encoders[enc_name], "is_recurrent", False):
+                self.is_recurrent = True
             obs.update(self.encoders[enc_name].encode(obs))
             hidden_state = self.encoders[enc_name].get_hidden_state()
             obs.update(self.encoders[enc_name].encode(obs, hidden_states=hidden_state))
@@ -82,6 +84,8 @@ class Estimator(nn.Module):
             'transformer_processor': TransformerProcessor,
             'unet_processor': UNetProcessor,
             'vae': VAE,
+            'kivi_kinesthetic': KiviKinestheticEncoder,
+            'kivi_visuospatial': KiviVisuospatialEncoder,
         }
         if encoder_name == 'memory':
             self.is_recurrent = True
@@ -95,6 +99,7 @@ class Estimator(nn.Module):
             'himloco': HimlocoDecoder,
             'implicit': ImplicitDecoder,
             'dreamer': DreamerDecoder,
+            'kl': KLDivergenceDecoder,
         }
         if decoder_name not in decoder_dict:
             raise ValueError(f"Unknown decoder: {decoder_name}")

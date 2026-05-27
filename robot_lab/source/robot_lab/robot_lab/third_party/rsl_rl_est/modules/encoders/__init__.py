@@ -7,3 +7,5 @@ from .unet_processor import UNetProcessor
 from .vae import VAE
 from .cross_attention_processor import CrossAttentionProcessor
 from .transformer_processor import TransformerProcessor
+from .kivi_kinesthetic import KiviKinestheticEncoder
+from .kivi_visuospatial import KiviVisuospatialEncoder

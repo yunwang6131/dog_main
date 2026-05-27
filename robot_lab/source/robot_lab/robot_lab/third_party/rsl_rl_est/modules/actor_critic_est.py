@@ -116,6 +116,7 @@ class ActorCriticEst(nn.Module):
             num_critic_obs += obs[obs_group].shape[-1]
 
         self.state_dependent_std = state_dependent_std
+        self.ablate_visual_latent = "none"
 
         self._print_detach_report()
         # Actor
@@ -222,6 +223,10 @@ class ActorCriticEst(nn.Module):
     def act_inference(self, obs: TensorDict, masks=None, hidden_state=None) -> torch.Tensor:
         obs = self.normalize(obs, skip_missing=True)
         obs = self.estimator.encode_inference(obs, dones=masks, hidden_states=hidden_state)
+        if self.ablate_visual_latent == "zero":
+            for key in ("visuospatial_latent", "visuospatial_state_latent", "visuospatial_foot_latent"):
+                if key in obs:
+                    obs[key].zero_()
         obs = self.get_actor_obs(obs)
         if self.state_dependent_std:
             return self.actor(obs)[..., 0, :]

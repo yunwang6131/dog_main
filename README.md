@@ -24,8 +24,15 @@ python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --enable_cameras \
   --logger wandb \
   --log_project_name kivi \
-  --run_name kivi_smoke \
-  --num_envs 64 \
-  --max_iterations 1
+  --run_name kivi \
+  --num_envs 256 
 
 python scripts/reinforcement_learning/rsl_rl/play.py --task RobotLab-Isaac-Velocity-Rough-Dolanga1-KiVi-v0
+
+# 不遮挡视觉
+
+python scripts/reinforcement_learning/rsl_rl/play.py   --task RobotLab-Isaac-Velocity-Rough-Dolanga1-KiVi-v0   --num_envs 16 --keyboard
+
+# 遮挡视觉
+
+python scripts/reinforcement_learning/rsl_rl/play.py   --task RobotLab-Isaac-Velocity-Rough-Dolanga1-KiVi-v0   --num_envs 16   --kivi_ablate_depth zero --keyboard

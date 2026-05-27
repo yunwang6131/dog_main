@@ -72,6 +72,16 @@ def foot_contact_state(
     return (forces > contact_threshold).float()
 
 
+def foot_contact_forces_xz(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Return selected feet contact forces in x/z directions, flattened as [fx1, fz1, ...]."""
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
+    return forces[..., (0, 2)].reshape(env.num_envs, -1)
+
+
 def feet_positions_body(
     env: ManagerBasedEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -141,6 +151,11 @@ class image_with_history(ManagerTermBase):
         self.data_type = cfg.params.get("data_type", "distance_to_image_plane")
         if self.data_type != "distance_to_image_plane":
             raise RuntimeError(f"Unsupported camera data type: {self.data_type}")
+        self.camera_shake_deg = float(cfg.params.get("camera_shake_deg", 0.0))
+        self.horizontal_fov_deg = float(cfg.params.get("horizontal_fov_deg", 85.0))
+        self.vertical_fov_deg = float(cfg.params.get("vertical_fov_deg", 42.0))
+        self.occlusion_ratio_range = tuple(cfg.params.get("occlusion_ratio_range", (0.0, 0.0)))
+        self.occlusion_value = float(cfg.params.get("occlusion_value", 2.0))
 
         self.history_buffer = RollImageHistory(
             num_env=env.num_envs,
@@ -149,6 +164,46 @@ class image_with_history(ManagerTermBase):
             width=self.image_width,
             device=str(env.device) if hasattr(env, "device") else "cuda",
         )
+
+    def _apply_camera_shake(self, images: torch.Tensor) -> torch.Tensor:
+        if self.camera_shake_deg <= 0.0:
+            return images
+
+        batch = images.shape[0]
+        horizontal_scale = (self.image_width * 0.5) / torch.tan(
+            torch.deg2rad(torch.tensor(self.horizontal_fov_deg * 0.5, device=images.device))
+        )
+        vertical_scale = (self.image_height * 0.5) / torch.tan(
+            torch.deg2rad(torch.tensor(self.vertical_fov_deg * 0.5, device=images.device))
+        )
+        shake = (torch.rand(batch, 2, device=images.device) * 2.0 - 1.0) * self.camera_shake_deg
+        shift_x = torch.round(torch.tan(torch.deg2rad(shake[:, 0])) * horizontal_scale).to(torch.int64)
+        shift_y = torch.round(torch.tan(torch.deg2rad(shake[:, 1])) * vertical_scale).to(torch.int64)
+        shifted = torch.empty_like(images)
+        for env_id in range(batch):
+            shifted[env_id] = torch.roll(images[env_id], shifts=(int(shift_y[env_id]), int(shift_x[env_id])), dims=(0, 1))
+        return shifted
+
+    def _apply_random_occlusion(self, images: torch.Tensor) -> torch.Tensor:
+        min_ratio, max_ratio = self.occlusion_ratio_range
+        if max_ratio <= 0.0:
+            return images
+
+        occluded = images.clone()
+        batch = images.shape[0]
+        ratios = min_ratio + (max_ratio - min_ratio) * torch.rand(batch, device=images.device)
+        for env_id in range(batch):
+            ratio = float(ratios[env_id])
+            if ratio <= 0.0:
+                continue
+            area = max(1, int(ratio * self.image_height * self.image_width))
+            aspect = float(0.5 + 1.5 * torch.rand((), device=images.device))
+            occ_h = max(1, min(self.image_height, int((area / aspect) ** 0.5)))
+            occ_w = max(1, min(self.image_width, int(area / occ_h)))
+            top = int(torch.randint(0, self.image_height - occ_h + 1, (), device=images.device))
+            left = int(torch.randint(0, self.image_width - occ_w + 1, (), device=images.device))
+            occluded[env_id, top : top + occ_h, left : left + occ_w] = self.occlusion_value
+        return occluded
 
     def __call__(
         self,
@@ -160,6 +215,11 @@ class image_with_history(ManagerTermBase):
         clip_horizontal_from: int = 26,
         clip_vertical_from: int = 0,
         flip: bool = False,
+        camera_shake_deg: float = 0.0,
+        horizontal_fov_deg: float = 85.0,
+        vertical_fov_deg: float = 42.0,
+        occlusion_ratio_range: tuple[float, float] = (0.0, 0.0),
+        occlusion_value: float = 2.0,
     ) -> torch.Tensor:
         if history_len != self.history_length:
             raise RuntimeError(f"history_len={history_len} does not match configured {self.history_length}")
@@ -178,6 +238,10 @@ class image_with_history(ManagerTermBase):
                 clip_horizontal_from : clip_horizontal_from + img_shape[1],
                 :,
             ]
+            images_2d = images.squeeze(-1)
+            images_2d = self._apply_camera_shake(images_2d)
+            images_2d = self._apply_random_occlusion(images_2d)
+            images = images_2d.unsqueeze(-1)
             self.history_buffer.add_frames(images)
         return self.history_buffer.get_history()
 
