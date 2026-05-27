@@ -47,9 +47,20 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.front_depth_camera = None
         self.scene.front_depth_camera_flip = None
         # self.scene.terrain.max_init_terrain_level = 0
-        self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.08)
-        self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
-        self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
+        terrain_generator = self.scene.terrain.terrain_generator
+        terrain_generator.sub_terrains["pyramid_stairs"].proportion = 0.2
+        terrain_generator.sub_terrains["pyramid_stairs"].step_height_range = (0.04, 0.16)
+        terrain_generator.sub_terrains["pyramid_stairs_inv"].proportion = 0.2
+        terrain_generator.sub_terrains["pyramid_stairs_inv"].step_height_range = (0.04, 0.16)
+        terrain_generator.sub_terrains["boxes"].proportion = 0.4
+        terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.08)
+        terrain_generator.sub_terrains["random_rough"].proportion = 0.0
+        terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
+        terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
+        terrain_generator.sub_terrains["hf_pyramid_slope"].proportion = 0.1
+        terrain_generator.sub_terrains["hf_pyramid_slope"].slope_range = (0.0, 0.25)
+        terrain_generator.sub_terrains["hf_pyramid_slope_inv"].proportion = 0.1
+        terrain_generator.sub_terrains["hf_pyramid_slope_inv"].slope_range = (0.0, 0.25)
 
 
         # ------------------------------Observations------------------------------
