@@ -40,7 +40,7 @@ _HIND_TERRAIN_SENSOR_CFGS = _FOOT_TERRAIN_SENSOR_CFGS[2:]
 
 _PAPER_ENV_RECIPE = {
     "num_envs": 400,
-    "decimation": 2,
+    "decimation": 4,
     "episode_length_s": 4.0,
     "command_resampling_time_range": (4.0, 4.0),
 }
@@ -94,9 +94,9 @@ _BARRIER_BODY_HEIGHT_PARAMS = {
     "hind_body_names": _HIND_REFERENCE_BODY_NAMES,
     "front_terrain_sensor_cfgs": _FRONT_TERRAIN_SENSOR_CFGS,
     "hind_terrain_sensor_cfgs": _HIND_TERRAIN_SENSOR_CFGS,
-    # Scaled for Dolanga1 (~0.47 m standing); paper Table I targets HOUND-scale heights.
-    "front_bounds": (0.37, 0.47),
-    "hind_bounds": (0.37, 0.47), 
+    # Scaled for Dolanga1 (~0.50 m standing); paper Table I targets HOUND-scale heights.
+    "front_bounds": (0.40, 0.50),
+    "hind_bounds": (0.40, 0.50), 
     "front_delta": 0.04,
     "hind_delta": 0.04,
     "alpha": 0.1,
@@ -144,7 +144,7 @@ _PAPER_STANDARD_REWARD_PARAMS = {
     "torque_weight": 2.5e-5,
     "action_rate_weight": 0.04, # 0.03 change for smooth
     "foot_slip_weight": 0.3,
-    "foot_position_weight": 0.8, # 0.5 change for smooth
+    "foot_position_weight": 0.5,
     "front_hind_balance_weight": 1.0,
     "use_orientation_penalty": False,
     "orientation_weight": 1.0,

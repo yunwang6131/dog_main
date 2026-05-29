@@ -78,9 +78,9 @@ observation_contract:
 
 control_contract:
   physics_dt_s: 0.005
-  decimation: 2
-  control_period_s: 0.01
-  control_rate_hz: 100
+  decimation: 4
+  control_period_s: 0.02
+  control_rate_hz: 50
   joint_order:
     - LF_hip_joint
     - LF_thigh_joint
@@ -107,7 +107,7 @@ control_contract:
     RH_hip_joint: RH_HAA
     RH_thigh_joint: RH_HFE
     RH_calf_joint: RH_KFE
-  q_default: [0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38]
+  q_default: [0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50]
   action_scale: [0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25]
   kp: [80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0]
   kd: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]

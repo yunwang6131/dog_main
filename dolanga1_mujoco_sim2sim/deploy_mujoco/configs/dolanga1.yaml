@@ -1,10 +1,10 @@
 # MuJoCo sim2sim config template for Dolanga1
 sim_duration: 120.0
 dt: 0.005
-decimation: 2
+decimation: 4
 warmup_seconds: 0.0
 history_len: 10
-init_base_height: 0.47
+init_base_height: 0.50
 
 # Set these before running
 mujoco_model_path: /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/Dolanga1.xml
@@ -29,7 +29,7 @@ joint_names:
   - RH_calf_joint
 
 # Default joint positions used by the trained policy
-q_default: [0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38]
+q_default: [0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50]
 
 # Per-joint action scales from training config
 action_scale: [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25]

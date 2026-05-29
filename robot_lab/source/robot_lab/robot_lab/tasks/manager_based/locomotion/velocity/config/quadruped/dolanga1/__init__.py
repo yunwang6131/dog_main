@@ -30,7 +30,7 @@ gym.register(
         "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
     },
 )
-
+# 实际用这个
 gym.register(
     id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-v0",
     entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
@@ -41,7 +41,7 @@ gym.register(
         "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
     },
 )
-
+# debug的不用管
 gym.register(
     id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-Debug-v0",
     entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",

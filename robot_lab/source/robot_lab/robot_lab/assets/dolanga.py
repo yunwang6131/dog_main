@@ -38,11 +38,11 @@ DOLANGA1_CFG = ArticulationCfg(
     ),
 
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.47),
+        pos=(0.0, 0.0, 0.50),
         joint_pos={
             ".*_hip_joint": 0.0,
-            ".*_thigh_joint": 0.93,
-            ".*_calf_joint": -1.38,
+            ".*_thigh_joint": 0.70,
+            ".*_calf_joint": -1.50,
         },
         joint_vel={".*": 0.0},
     ),

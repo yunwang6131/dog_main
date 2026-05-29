@@ -11,10 +11,10 @@ import torch
 class Sim2SimCfg:
     sim_duration: float = 120.0
     dt: float = 0.005
-    decimation: int = 2
+    decimation: int = 4
     history_len: int = 10
     warmup_seconds: float = 0.0
-    init_base_height: float = 0.47
+    init_base_height: float = 0.50
     base_body_name: str = "base_link"
     foot_body_names: list[str] = field(
         default_factory=lambda: ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
@@ -67,7 +67,7 @@ class Sim2SimCfg:
     )
     q_default: np.ndarray = field(
         default_factory=lambda: np.array(
-            [0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38, 0.0, 0.93, -1.38],
+            [0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50],
             dtype=np.float32,
         )
     )
