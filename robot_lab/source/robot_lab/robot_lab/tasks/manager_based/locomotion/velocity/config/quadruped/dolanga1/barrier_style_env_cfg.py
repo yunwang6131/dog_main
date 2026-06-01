@@ -3,6 +3,8 @@
 
 """Dolanga1 envs with paper-aligned barrier-style rewards for BarrierDual training."""
 
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
@@ -42,7 +44,7 @@ _PAPER_ENV_RECIPE = {
     "num_envs": 400,
     "decimation": 4,
     "episode_length_s": 4.0,
-    "command_resampling_time_range": (4.0, 4.0),
+    "command_resampling_time_range": (5.0, 5.0),
 }
 
 _BARRIER_GAIT_PARAMS = {
@@ -81,7 +83,7 @@ _BARRIER_JOINT_POSITION_PARAMS = {
     "hip_joint_names": [".*_hip_joint"],
     "thigh_joint_names": [".*_thigh_joint"],
     "calf_joint_names": [".*_calf_joint"],
-    "roll_bounds": (-0.5235987755982988, 0.5235987755982988),
+    "roll_bounds": (-0.3490658503988659, 0.3490658503988659),  # ±20° (tightened from ±30°)
     "thigh_bounds": (-0.7853981633974483, 0.7853981633974483),
     "calf_bounds": (-1.2566370614359172, 0.7853981633974483),
     "delta": 0.08,
@@ -113,8 +115,8 @@ _BARRIER_VELOCITY_TRACKING_PARAMS = {
 
 _BARRIER_BASE_MOTION_PARAMS = {
     "asset_cfg": SceneEntityCfg("robot"),
-    "omega_xy_bounds": (-0.3, 0.3),
-    "vz_bounds": (-0.2, 0.2),
+    "omega_xy_bounds": (-0.2, 0.2),
+    "vz_bounds": (-0.15, 0.15),
     "omega_delta": 0.3,
     "vz_delta": 0.2,
     "alpha": 0.1,
@@ -142,12 +144,12 @@ _PAPER_STANDARD_REWARD_PARAMS = {
     "ang_vel_weight": 1.5,
     "neg_exp_scale": 0.2,
     "torque_weight": 2.5e-5,
-    "action_rate_weight": 0.04, # 0.03 change for smooth
+    "action_rate_weight": 0.05,
     "foot_slip_weight": 0.3,
     "foot_position_weight": 0.5,
     "front_hind_balance_weight": 1.0,
-    "use_orientation_penalty": False,
-    "orientation_weight": 1.0,
+    "use_orientation_penalty": True,
+    "orientation_weight": 1.2,
 }
 
 
@@ -251,7 +253,7 @@ def _add_barrier_style_rewards(cfg) -> None:
     )
     cfg.rewards.barrier_style_joint_position = RewTerm(
         func=barrier_style_rewards.barrier_style_joint_position,
-        weight=1.0,
+        weight=1.5,
         params=dict(_BARRIER_JOINT_POSITION_PARAMS),
     )
     cfg.rewards.barrier_style_body_height = RewTerm(
@@ -261,7 +263,7 @@ def _add_barrier_style_rewards(cfg) -> None:
     )
     cfg.rewards.barrier_style_velocity_tracking = RewTerm(
         func=barrier_style_rewards.barrier_style_velocity_tracking,
-        weight=1.0,
+        weight=2.0,
         params=dict(_BARRIER_VELOCITY_TRACKING_PARAMS),
     )
     cfg.rewards.barrier_style_base_motion = RewTerm(
@@ -325,9 +327,8 @@ def _tune_for_barrier_training(cfg) -> None:
             reward.weight = 0.0
 
     cfg.rewards.is_terminated.weight = -5.0
-    # 加一点微调顺滑程度，沿用rough的设置微调
     cfg.rewards.lin_vel_z_l2.weight = -3.0
-    cfg.rewards.ang_vel_xy_l2.weight = -0.1
+    cfg.rewards.action_rate_l2.weight = -0.05
     cfg.terminations.illegal_contact.params["sensor_cfg"].body_names = [
         ".*_hip_link",
         ".*_thigh_link",
@@ -335,9 +336,56 @@ def _tune_for_barrier_training(cfg) -> None:
     ]
 
 
+def _tune_sim2real_robustness(cfg) -> None:
+    pose_range = cfg.events.randomize_reset_base.params["pose_range"]
+    # Keep reset posture closer to nominal to improve stand-in-place stability.
+    pose_range["roll"] = (-0.08, 0.08)
+    pose_range["pitch"] = (-0.08, 0.08)
+
+    # Real robot standing is sensitive to reset joint offsets.
+    cfg.events.randomize_reset_joints.params["position_range"] = (1.0, 1.0)
+    cfg.events.randomize_reset_joints.params["velocity_range"] = (-0.02, 0.02)
+
+    # Reduce overall gain randomization amplitude for smoother deployment behavior.
+    cfg.events.randomize_actuator_gains.params["stiffness_distribution_params"] = (0.9, 1.1)
+    cfg.events.randomize_actuator_gains.params["damping_distribution_params"] = (0.9, 1.1)
+
+    push_event = getattr(cfg.events, "randomize_push_robot", None)
+    if push_event is not None:
+        push_event.interval_range_s = (6.0, 10.0)
+        push_event.params["velocity_range"] = {"x": (-0.3, 0.3), "y": (-0.3, 0.3)}
+
+    cfg.curriculum.command_levels_lin_vel = CurrTerm(
+        func=mdp.command_levels_lin_vel,
+        params={
+            "reward_term_name": "paper_standard_reward",
+            "range_multiplier": (0.35, 1.0),
+        },
+    )
+    cfg.curriculum.command_levels_ang_vel = CurrTerm(
+        func=mdp.command_levels_ang_vel,
+        params={
+            "reward_term_name": "paper_standard_reward",
+            "range_multiplier": (0.35, 1.0),
+        },
+    )
+
+    cfg.events.randomize_right_leg_actuator_gains = EventTerm(
+        func=mdp.scale_actuator_gains_for_joints,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "joint_names": ["RF_.*", "RH_.*"],
+            "stiffness_scale_range": (0.85, 0.98),
+            "damping_scale_range": (0.85, 0.98),
+        },
+    )
+
+
 @configclass
 class Dolanga1RoughBarrierStyleEnvCfg(Dolanga1RoughEnvCfg):
     barrier_reward_term_prefixes: tuple[str, ...] = ("barrier_style_",)
+    action_delay_env_steps_range: tuple[int, int] = (0, 1)
 
     def __post_init__(self):
         super().__post_init__()
@@ -347,6 +395,7 @@ class Dolanga1RoughBarrierStyleEnvCfg(Dolanga1RoughEnvCfg):
         _add_barrier_style_rewards(self)
         _add_paper_standard_reward(self)
         _tune_for_barrier_training(self)
+        _tune_sim2real_robustness(self)
         if self.__class__.__name__ == "Dolanga1RoughBarrierStyleEnvCfg":
             self.disable_zero_weight_rewards()
 
@@ -354,6 +403,7 @@ class Dolanga1RoughBarrierStyleEnvCfg(Dolanga1RoughEnvCfg):
 @configclass
 class Dolanga1FlatBarrierStyleEnvCfg(Dolanga1FlatEnvCfg):
     barrier_reward_term_prefixes: tuple[str, ...] = ("barrier_style_",)
+    action_delay_env_steps_range: tuple[int, int] = (0, 1)
 
     def __post_init__(self):
         super().__post_init__()
@@ -363,5 +413,6 @@ class Dolanga1FlatBarrierStyleEnvCfg(Dolanga1FlatEnvCfg):
         _add_barrier_style_rewards(self)
         _add_paper_standard_reward(self)
         _tune_for_barrier_training(self)
+        _tune_sim2real_robustness(self)
         if self.__class__.__name__ == "Dolanga1FlatBarrierStyleEnvCfg":
             self.disable_zero_weight_rewards()

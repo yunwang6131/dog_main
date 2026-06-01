@@ -269,3 +269,54 @@ def reset_root_state_uniform(
         # set into the physics simulation
         asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=non_pit_env_ids)
         asset.write_root_velocity_to_sim(velocities, env_ids=non_pit_env_ids)
+
+
+def scale_actuator_gains_for_joints(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor | None,
+    asset_cfg: SceneEntityCfg,
+    joint_names: list[str],
+    stiffness_scale_range: tuple[float, float] = (0.75, 0.95),
+    damping_scale_range: tuple[float, float] = (0.75, 0.95),
+) -> None:
+    asset: Articulation = env.scene[asset_cfg.name]
+    if env_ids is None:
+        env_ids = torch.arange(env.scene.num_envs, device=asset.device)
+    else:
+        env_ids = env_ids.to(asset.device)
+
+    target_joint_ids = asset.find_joints(joint_names, preserve_order=True)[0]
+    if len(target_joint_ids) == 0:
+        return
+    target_joint_ids_t = torch.tensor(target_joint_ids, device=asset.device, dtype=torch.long)
+
+    num_envs = len(env_ids)
+    for actuator in asset.actuators.values():
+        if isinstance(actuator.joint_indices, slice):
+            actuator_joint_indices = torch.arange(asset.num_joints, device=asset.device)
+        else:
+            actuator_joint_indices = actuator.joint_indices.to(asset.device)
+
+        actuator_indices = torch.nonzero(torch.isin(actuator_joint_indices, target_joint_ids_t), as_tuple=False).view(-1)
+        if len(actuator_indices) == 0:
+            continue
+
+        stiff_scale = math_utils.sample_uniform(
+            stiffness_scale_range[0],
+            stiffness_scale_range[1],
+            (num_envs, len(actuator_indices)),
+            device=asset.device,
+        )
+        damp_scale = math_utils.sample_uniform(
+            damping_scale_range[0],
+            damping_scale_range[1],
+            (num_envs, len(actuator_indices)),
+            device=asset.device,
+        )
+
+        stiffness = actuator.stiffness[env_ids].clone()
+        damping = actuator.damping[env_ids].clone()
+        stiffness[:, actuator_indices] *= stiff_scale
+        damping[:, actuator_indices] *= damp_scale
+        actuator.stiffness[env_ids] = stiffness
+        actuator.damping[env_ids] = damping
