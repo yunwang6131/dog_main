@@ -36,3 +36,21 @@ python scripts/reinforcement_learning/rsl_rl/play.py   --task RobotLab-Isaac-Vel
 # 遮挡视觉
 
 python scripts/reinforcement_learning/rsl_rl/play.py   --task RobotLab-Isaac-Velocity-Rough-Dolanga1-KiVi-v0   --num_envs 16   --kivi_ablate_depth zero --keyboard
+
+# KiVi 导出 merged policy_full.pt
+
+python scripts/reinforcement_learning/rsl_rl/play.py \
+  --task RobotLab-Isaac-Velocity-Rough-Dolanga1-KiVi-v0 \
+  --num_envs 16 \
+  --enable_cameras
+
+# KiVi sim2sim 加载 policy_full.pt
+
+cd /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim
+
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_kivi_viewer.py \
+  --load_model /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/a1_scene.xml \
+  --policy /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_kivi/<run>/exported/policy_full.pt \
+  --cmd_x 0.5 \
+  --cmd_y 0.0 \
+  --cmd_yaw 0.0

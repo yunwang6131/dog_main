@@ -139,7 +139,6 @@ model_internal_contract:
     - name: z
       meaning: latent_mu
       note: use latent_mu, not sampled latent
-
   actor_input:
     source: concat(current, v_est, z)
     order:

@@ -28,3 +28,19 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py   --lo
 PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_no_exF_viewer.py   --load_model /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/a1_scene.xml   --policy /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_barrier_dual/<run>/exported/policy_full.pt   --cmd_x 0.5   --cmd_y 0.0   --cmd_yaw 0.0
   
 ```
+
+# KiVi + visual encoder
+
+KiVi 入口使用 merged TorchScript `policy_full.pt`，输入为 `history, current, front_camera_depth, visual_memory`。
+当前 MuJoCo 版本先使用常量 depth 占位，能验证 KiVi 导出、加载、memory 递推和 PD 控制链路。
+
+```bash
+cd /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim
+
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_kivi_viewer.py \
+  --load_model /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/a1_scene.xml \
+  --policy /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_kivi/<run>/exported/policy_full.pt \
+  --cmd_x 0.5 \
+  --cmd_y 0.0 \
+  --cmd_yaw 0.0
+```

@@ -279,7 +279,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
 
     if is_est_runner:
+        from robot_lab.third_party.rsl_rl_est.modules import export_kivi_merged_jit_from_runner
+
         print("[INFO] Skipping generic RSL-RL policy export for OnPolicyRunnerEst.")
+        export_kivi_merged_jit_from_runner(runner, export_model_dir)
     elif version.parse(installed_version) >= version.parse("4.0.0"):
         # use the new export functions for rsl-rl >= 4.0.0
         runner.export_policy_to_jit(path=export_model_dir, filename="policy.pt")
