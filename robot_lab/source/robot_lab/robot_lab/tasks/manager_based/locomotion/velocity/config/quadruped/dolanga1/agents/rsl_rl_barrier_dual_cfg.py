@@ -62,7 +62,7 @@ class BarrierDreamWaQActorCfg(RslRlMLPModelCfg):
 @configclass
 class BarrierDualAlgorithmCfg(RslRlPpoAlgorithmCfg):
     class_name: str = "robot_lab.third_party.rsl_rl_barrier_dual.ppo_barrier_dual:BarrierDualPPO"
-    surrogate_barrier_weight: float = 0.4
+    surrogate_barrier_weight: float = 0.3
     estimator_loss_coef: float = 1.0
     dreamwaq_next_obs_groups: list[str] = PROPRIO_GROUPS
 

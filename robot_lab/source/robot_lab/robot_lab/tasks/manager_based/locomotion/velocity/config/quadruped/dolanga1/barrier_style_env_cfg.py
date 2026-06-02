@@ -22,7 +22,7 @@ from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import (
 
 # Diagonal trot: LF/RH in phase, RF/LH in opposite phase.
 _TROT_PERIOD = 0.62 #0.68
-_TROT_PHASE_OFFSETS = [0.0, 0.5, 0.5, 0.0]  # LF, RF, LH, RH
+_TROT_PHASE_OFFSETS = [0.0, 0.45, 0.55, 0.0] # LF, RF, LH, RH  walk [0.0, 0.25, 0.5, 0.75] trot [0.0, 0.48, 0.52, 0.0] 
 _FOOT_BODY_NAMES = ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
 _FOOT_SENSOR_CFG = SceneEntityCfg("contact_forces", body_names=_FOOT_BODY_NAMES)
 _FOOT_ASSET_CFG = SceneEntityCfg("robot", body_names=_FOOT_BODY_NAMES)
@@ -56,8 +56,8 @@ _BARRIER_GAIT_PARAMS = {
     "delta": 0.1,
     "alpha": 0.1,
     "command_name": "base_velocity",
-    "command_threshold": 0.2,
-    "stand_threshold": 0.2,
+    "command_threshold": 0.08,
+    "stand_threshold": 0.05,
 }
 
 _BARRIER_FOOT_CLEARANCE_PARAMS = {
@@ -73,8 +73,8 @@ _BARRIER_FOOT_CLEARANCE_PARAMS = {
     "delta": 0.01,
     "alpha": 0.1,
     "command_name": "base_velocity",
-    "command_threshold": 0.2,
-    "stand_threshold": 0.2,
+    "command_threshold": 0.08,
+    "stand_threshold": 0.05,
     "terrain_height": 0.0,
 }
 
@@ -193,7 +193,7 @@ def _add_paper_observations(cfg) -> None:
         {
             "phase": ObsTerm(
                 func=mdp.phase_with_command,
-                params={"cycle_time": _TROT_PERIOD, "command_name": "base_velocity", "stand_threshold": 0.2},
+                params={"cycle_time": _TROT_PERIOD, "command_name": "base_velocity", "stand_threshold": 0.05},
                 clip=(-1.0, 1.0),
                 scale=1.0,
             )
@@ -204,7 +204,7 @@ def _add_paper_observations(cfg) -> None:
         {
             "stand_mode": ObsTerm(
                 func=mdp.command_stand_mode,
-                params={"command_name": "base_velocity", "threshold": 0.2},
+                params={"command_name": "base_velocity", "threshold": 0.05},
                 clip=(0.0, 1.0),
                 scale=1.0,
             )
@@ -243,7 +243,7 @@ def _add_barrier_style_rewards(cfg) -> None:
     """Register barrier_style_* terms (summed into the barrier critic stream)."""
     cfg.rewards.barrier_style_gait = RewTerm(
         func=barrier_style_rewards.barrier_style_gait,
-        weight=1.0,
+        weight=0.7,
         params=dict(_BARRIER_GAIT_PARAMS),
     )
     cfg.rewards.barrier_style_foot_clearance = RewTerm(
@@ -332,6 +332,7 @@ def _tune_for_barrier_training(cfg) -> None:
     cfg.terminations.illegal_contact.params["sensor_cfg"].body_names = [
         ".*_hip_link",
         ".*_thigh_link",
+        ".*_calf_link",
         cfg.base_link_name,
     ]
 
@@ -359,14 +360,14 @@ def _tune_sim2real_robustness(cfg) -> None:
         func=mdp.command_levels_lin_vel,
         params={
             "reward_term_name": "paper_standard_reward",
-            "range_multiplier": (0.35, 1.0),
+            "range_multiplier": (0.20, 0.80),
         },
     )
     cfg.curriculum.command_levels_ang_vel = CurrTerm(
         func=mdp.command_levels_ang_vel,
         params={
             "reward_term_name": "paper_standard_reward",
-            "range_multiplier": (0.35, 1.0),
+            "range_multiplier": (0.20, 0.75),
         },
     )
 

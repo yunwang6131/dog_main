@@ -28,3 +28,6 @@ models/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local motion capture logs
+Motion@*.csv
