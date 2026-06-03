@@ -52,3 +52,6 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
   --cmd_x 1.0 \
   --cmd_y 0.0 \
   --cmd_yaw 0.0
+# humanoid
+
+HYDRA_FULL_ERROR=1 python3 scripts/reinforcement_learning/rsl_rl/train.py   --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0   --headless   --num_envs 16   --max_iterations 1   --device cuda:0 2>&1 | tee error.log

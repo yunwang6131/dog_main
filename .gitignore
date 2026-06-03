@@ -31,3 +31,6 @@ Thumbs.db
 
 # Local motion capture logs
 Motion@*.csv
+
+# Local reference checkout copied in for asset extraction
+/dolangh1/

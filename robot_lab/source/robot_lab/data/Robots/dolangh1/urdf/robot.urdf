@@ -1,0 +1,3118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.5.1-0-g916b5db  Build Version: 1.5.7152.31018
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="robot">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.00037109
+            0.00001791
+             0.10718551"
+        rpy="0 0 0" />
+      <mass
+        value="5.53550079" />
+      <inertia
+        ixx=" 0.03832176"
+        ixy=" -0.00000175"
+        ixz=" 0.00019932"
+        iyy="  0.02603120"
+        iyz=" -0.00000047"
+        izz="  0.02041227" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="waist_link">
+    <inertial>
+      <origin
+        xyz="-0.0236488289653656 0.000162061599937936 0.026044777277747"
+        rpy="0 0 0" />
+      <mass
+        value="0.362353510485414" />
+      <inertia
+        ixx=" 0.00045696"
+        ixy="0.00000000"
+        ixz="  -0.00011677"
+        iyy=" 0.00050645"
+        iyz=" -0.00000103"
+        izz="0.00076206" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/waist_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/waist_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="waist_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.218"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="waist_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+    <safety_controller
+      soft_upper="2.5"
+      soft_lower="-2.5"
+      k_velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="waist_cross_link">
+    <inertial>
+      <origin
+        xyz="0 -1.77019358864571E-16 1.29194333892562E-16"
+        rpy="0 0 0" />
+      <mass
+        value="0.079701954628887" />
+      <inertia
+        ixx="1.41542091785122E-05"
+        ixy="-1.65260187828005E-21"
+        ixz="-5.1643791553925E-22"
+        iyy="6.53760763730951E-06"
+        iyz="1.54075444091847E-22"
+        izz="9.70666245599457E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/waist_cross_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/waist_cross_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lazy_waist_cross_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.04365"
+      rpy="0 -1.5708 0" />
+    <parent
+      link="waist_link" />
+    <child
+      link="waist_cross_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="torso_link">
+    <inertial>
+      <origin
+        xyz="-0.00230125
+            0.19447598
+          -0.00142359
+          "
+        rpy="0 0 0" />
+      <mass
+        value="10.49171985" />
+      <inertia
+        ixx="0.16440609"
+        ixy=" -0.00316288"
+        ixz=" -0.00034453"
+        iyy=" 0.09377292"
+        iyz="0.00023296"
+        izz=" 0.09667594" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lazy_torso_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="1.5708 1.5708 0" />
+    <parent
+      link="waist_cross_link" />
+    <child
+      link="torso_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+    <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="torso_camera_link">
+    <inertial>
+      <origin
+        xyz="-0.00025 -2.37109230139901E-16 -5.55111512312578E-17"
+        rpy="0 0 0" />
+      <mass
+        value="0.000759264368493234" />
+      <inertia
+        ixx="4.29276564682574E-07"
+        ixy="5.61249491462571E-22"
+        ixz="-1.32348898008484E-23"
+        iyy="2.17908349051388E-08"
+        iyz="-8.81488512823489E-23"
+        izz="4.0751736579279E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_camera_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_camera_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="torso_camera_joint"
+    type="fixed">
+    <origin
+      xyz="0.063578 0.092403 0"
+      rpy="-1.5708 0 -0.69813" />
+    <parent
+      link="torso_link" />
+    <child
+      link="torso_camera_link" />
+    <axis
+      xyz="0 0 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+     <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="torso_left_handle_link">
+    <inertial>
+      <origin
+        xyz="0.0302162324706682 -2.11690020623934E-07 -2.06386147512394E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.147800797979173" />
+      <inertia
+        ixx=" 0.00003723"
+        ixy="6.44936332147508E-10"
+        ixz="-0.00002845"
+        iyy=" 0.00015102"
+        iyz="-1.59424727959158E-10"
+        izz=" 0.00028113" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_left_handle_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_left_handle_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_torso_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.075 -0.0705"
+      rpy="-3.1416 0 3.1416" />
+    <parent
+      link="torso_link" />
+    <child
+      link="torso_left_handle_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+     <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="torso_left_stick_link">
+    <inertial>
+      <origin
+        xyz="0.037500003269039 -0.00129217168239414 8.69119332058688E-10"
+        rpy="0 0 0" />
+      <mass
+        value="0.0181117587543135" />
+      <inertia
+        ixx=" 0.00000108"
+        ixy=" 0.00000000"
+        ixz="-3.52594055330152E-14"
+        iyy="  0.00001951"
+        iyz="-1.75467329265093E-14"
+        izz=" 0.00002046" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_left_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_left_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lazy_torso_left_stick_joint"
+    type="revolute">
+    <origin
+      xyz="0.065 0 -0.0112"
+      rpy="2.8673 0.00066667 -1.5708" />
+    <parent
+      link="torso_left_handle_link" />
+    <child
+      link="torso_left_stick_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="copy_torso_left_stick_link">
+    <inertial>
+      <origin
+        xyz="0 -6.93889390390723E-18 -1.38777878078145E-17"
+        rpy="0 0 0" />
+      <mass
+        value="3.05663706143592E-05" />
+      <inertia
+        ixx="7.70958653158134E-11"
+        ixy="-9.55704986675256E-27"
+        ixz="1.67462548403937E-25"
+        iyy="7.70958653158134E-11"
+        iyz="9.23426681993098E-26"
+        izz="3.32831853071799E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_torso_left_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_torso_left_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="copy_torso_left_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.075 0 0"
+      rpy="0 0 -3.1416" />
+    <parent
+      link="torso_left_stick_link" />
+    <child
+      link="copy_torso_left_stick_link" />
+    <axis
+      xyz="0 0 0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="fake_torso_left_stick_link">
+    <inertial>
+      <origin
+        xyz="-1.38777878078145E-17 5.55111512312578E-17 -2.08166817117217E-16"
+        rpy="0 0 0" />
+      <mass
+        value="4.24115008234623E-05" />
+      <inertia
+        ixx="1.51090971683585E-10"
+        ixy="3.07862027947923E-41"
+        ixz="2.62496845848311E-26"
+        iyy="1.51090971683585E-10"
+        iyz="-4.02587221382647E-26"
+        izz="4.77129384263951E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_torso_left_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_torso_left_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lazy_torso_left_stick_stub_joint"
+    type="fixed">
+    <origin
+      xyz="-0.0650000000000001 0.05925 0.0436495612872182"
+      rpy="1.5707963267949 0 0" />
+    <parent
+      link="waist_link" />
+    <child
+      link="fake_torso_left_stick_link" />
+    <axis
+      xyz="0 0 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+    <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="torso_right_handle_link">
+    <inertial>
+      <origin
+        xyz="0.0302162324706682 -2.11690020568422E-07 2.06386147513782E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.147800797979173" />
+      <inertia
+        ixx=" 0.00003723"
+        ixy="6.44936331872732E-10"
+        ixz="0.00002845"
+        iyy="0.00015102"
+        iyz="1.59424727896577E-10"
+        izz=" 0.00028113" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_right_handle_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_right_handle_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_torso_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.075 0.0705"
+      rpy="-3.1416 0 3.1416" />
+    <parent
+      link="torso_link" />
+    <child
+      link="torso_right_handle_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="torso_right_stick_link">
+    <inertial>
+      <origin
+        xyz="0.0375000033563609 -0.00129217167837352 8.51390673239916E-10"
+        rpy="0 0 0" />
+      <mass
+        value="0.0181117587316802" />
+      <inertia
+        ixx=" 0.00000108"
+        ixy="-4.42517913950863E-13"
+        ixz="-3.40665710861219E-14"
+        iyy=" 0.00001951"
+        iyz="-2.08968654638901E-14"
+        izz=" 0.00002046" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_right_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/torso_right_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lazy_torso_right_stick_joint"
+    type="revolute">
+    <origin
+      xyz="0.065 0 0.0112"
+      rpy="2.9246 -0.00066667 -1.5708" />
+    <parent
+      link="torso_right_handle_link" />
+    <child
+      link="torso_right_stick_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="copy_torso_right_stick_link">
+    <inertial>
+      <origin
+        xyz="-5.5511E-17 -2.7756E-17 -1.1796E-16"
+        rpy="0 0 0" />
+      <mass
+        value="3.0566E-05" />
+      <inertia
+        ixx="7.7096E-11"
+        ixy="1.1271E-25"
+        ixz="-5.7926E-25"
+        iyy="7.7096E-11"
+        iyz="9.46E-26"
+        izz="3.3283E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_torso_right_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_torso_right_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="copy_torso_right_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.075 0 0"
+      rpy="0 0 -3.1416" />
+    <parent
+      link="torso_right_stick_link" />
+    <child
+      link="copy_torso_right_stick_link" />
+    <axis
+      xyz="0 0 0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="fake_torso_right_stick_link">
+    <inertial>
+      <origin
+        xyz="1.38777878078145E-17 0 3.85802501057242E-15"
+        rpy="0 0 0" />
+      <mass
+        value="4.24115008234623E-05" />
+      <inertia
+        ixx="1.51090971683585E-10"
+        ixy="3.76765740998501E-41"
+        ixz="3.88034759702829E-26"
+        iyy="1.51090971683585E-10"
+        iyz="-3.60209619131843E-26"
+        izz="4.77129384263951E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_torso_right_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_torso_right_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lazy_torso_right_stick_stub_joint"
+    type="fixed">
+    <origin
+      xyz="-0.065 -0.059249999999996 0.0436495612872182"
+      rpy="1.5707963267949 0 0" />
+    <parent
+      link="waist_link" />
+    <child
+      link="fake_torso_right_stick_link" />
+    <axis
+      xyz="0 0 0" />
+    <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="head_link">
+    <inertial>
+      <origin
+        xyz=" 0.02581952 -0.00115650 0.08818672"
+        rpy="0 0 0" />
+      <mass
+        value="0.88948237" />
+      <inertia
+        ixx="0.00483312"
+        ixy="0.00008411"
+        ixz="-0.00019622"
+        iyy=" 0.00596545"
+        iyz= "-0.00025719"
+        izz=" 0.00404055" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/head_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/head_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="neck_yaw"
+    type="revolute">
+    <origin
+      xyz="0 0.381 0"
+      rpy="-1.5708 0 0" />
+    <parent
+      link="torso_link" />
+    <child
+      link="head_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="left_shoulder_pitch_link">
+    <inertial>
+      <origin
+        xyz=" -0.00006630
+             -0.00123121
+            -0.41198301 "
+        rpy="0 0 0" />
+      <mass
+        value="0.64406121" />
+      <inertia
+        ixx="0.00068030"
+        ixy="-0.00000017"
+        ixz="  -0.00000134"
+        iyy="0.00051778"
+        iyz="-0.00000633"
+        izz=" 0.00052580" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_shoulder_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_shoulder_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_shoulder_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.283 -0.1775"
+      rpy="0 0 -1.5708" />
+    <parent
+      link="torso_link" />
+    <child
+      link="left_shoulder_pitch_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="left_shoulder_roll_jlink">
+    <inertial>
+      <origin
+        xyz=" 0.06712158
+            -0.48026842
+              -0.00049348
+            "
+        rpy="0 0 0" />
+      <mass
+        value="0.87128543" />
+      <inertia
+        ixx=" 0.00106016"
+        ixy="0.00010977"
+        ixz=" 0.00001575"
+        iyy="0.00675579"
+        iyz=" -0.00000020"
+        izz="0.00630924" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_shoulder_roll_jlink.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_shoulder_roll_jlink.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_shoulder_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.062"
+      rpy="-1.5708 0 0" />
+    <parent
+      link="left_shoulder_pitch_link" />
+    <child
+      link="left_shoulder_roll_jlink" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="left_shoulder_yaw_link">
+    <inertial>
+      <origin
+        xyz="-8.97768951128208E-05 0.00341980428368238 -0.0753739652325005"
+        rpy="0 0 0" />
+      <mass
+        value="0.72689920" />
+      <inertia
+        ixx=" 0.00632053"
+        ixy=" -0.00000621"
+        ixz="0.00002910"
+        iyy="0.00615536"
+        iyz=" -0.00002219"
+        izz="0.00056695" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_shoulder_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_shoulder_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_shoulder_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.13398 0.0023386 0"
+      rpy="0 -1.5708 0" />
+    <parent
+      link="left_shoulder_roll_jlink" />
+    <child
+      link="left_shoulder_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="left_elbow_pitch_link">
+    <inertial>
+      <origin
+        xyz="0.0381333970844276 -0.000292811650880844 -0.000339648037321089"
+        rpy="0 0 0" />
+      <mass
+        value="0.82971026" />
+      <inertia
+        ixx="0.00100878"
+        ixy=" -0.00001362"
+        ixz=" -0.00001020"
+        iyy=" 0.00462631"
+        iyz=" -0.00000049"
+        izz=" 0.00419302" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_elbow_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_elbow_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_elbow_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0017103 -0.097985"
+      rpy="3.14159 1.5533 1.5708" />
+    <parent
+      link="left_shoulder_yaw_link" />
+    <child
+      link="left_elbow_pitch_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_elbow_yaw_link">
+    <inertial>
+      <origin
+        xyz="-0.00161287069760922 0.00123525770543995 -0.0700113559386218"
+        rpy="0 0 0" />
+      <mass
+        value=" 0.61978870" />
+      <inertia
+        ixx="0.00443108"
+        ixy=" 0.00000146"
+        ixz=" -0.00012769"
+        iyy="0.00457495"
+        iyz="-0.00007486"
+        izz="0.00050462" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_elbow_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_elbow_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_elbow_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.112 0 0"
+  
+      rpy="-1.5882 0 1.5708" />
+    <parent
+      link="left_elbow_pitch_link" />
+    <child
+      link="left_elbow_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_wrist_link">
+    <inertial>
+      <origin
+        xyz="0.0408966299285766 -0.000741504822840522 0.000538313836966589"
+        rpy="0 0 0" />
+      <mass
+        value="0.93911670" />
+      <inertia
+        ixx="0.00081516"
+        ixy=" -0.00016215"
+        ixz=" 0.00006940"
+        iyy=" 0.00874023"
+        iyz="0.00000123"
+        izz="0.00821791" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_wrist_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_wrist_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_wrist_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0015707 -0.089986"
+      rpy="3.14159 1.5708 0" />
+    <parent
+      link="left_elbow_yaw_link" />
+    <child
+      link="left_wrist_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_shoulder_pitch_link">
+    <inertial>
+      <origin
+        xyz="0.000251336641907685 0.00289890196319689 0.0513612035119027"
+        rpy="0 0 0" />
+      <mass
+        value="0.64406121" />
+      <inertia
+        ixx=" 0.00277109"
+        ixy="-0.00000027"
+        ixz="0.00000222"
+        iyy="0.00261063"
+        iyz="-0.00003844"
+        izz="0.00052678" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_shoulder_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_shoulder_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_shoulder_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.283 0.1775"
+      rpy="0 0 -1.5708" />
+    <parent
+      link="torso_link" />
+    <child
+      link="right_shoulder_pitch_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_shoulder_roll_link">
+    <inertial>
+      <origin
+        xyz="0.0453416765301476 0.000883543078926491 -0.00045133482535306"
+        rpy="0 0 0" />
+      <mass
+        value="0.87128543" />
+      <inertia
+        ixx="0.00105998"
+        ixy=" 0.00010470"
+        ixz="-0.00002599"
+        iyy=" 0.00675597"
+        iyz=" -0.00000093"
+        izz="0.00630924" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_shoulder_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_shoulder_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_shoulder_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.062"
+      rpy="1.5708 0 0" />
+    <parent
+      link="right_shoulder_pitch_link" />
+    <child
+      link="right_shoulder_roll_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_shoulder_yaw_link">
+    <inertial>
+      <origin
+        xyz="-8.26921749080548E-05 0.0034201038913661 0.0753911296824271"
+        rpy="0 0 0" />
+      <mass
+        value="0.72689920" />
+      <inertia
+        ixx="0.00633191"
+        ixy="-0.00000613"
+        ixz=" -0.00002783"
+        iyy=" 0.00616670"
+        iyz=" 0.00002311"
+        izz="0.00056697" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_shoulder_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_shoulder_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_shoulder_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.13398 0.0023386 0"
+      rpy="0 1.5708 0" />
+    <parent
+      link="right_shoulder_roll_link" />
+    <child
+      link="right_shoulder_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_elbow_pitch_link">
+    <inertial>
+      <origin
+        xyz="0.0381333975402819 7.71360603695493E-05 0.000488865157757007"
+        rpy="0 0 0" />
+      <mass
+        value=" 0.82971027" />
+      <inertia
+        ixx="0.00100878"
+        ixy="0.00000050"
+        ixz="0.00001878"
+        iyy="0.00462631"
+        iyz="-0.00000049"
+        izz="0.00419302" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_elbow_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_elbow_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_elbow_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0017103 0.097985"
+      rpy="3.1416 -1.5533 1.5708" />
+    <parent
+      link="right_shoulder_yaw_link" />
+    <child
+      link="right_elbow_pitch_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_elbow_yaw_link">
+    <inertial>
+      <origin
+        xyz="-0.00161287152295621 0.00123521278677929 0.0700129849127489"
+        rpy="0 0 0" />
+      <mass
+        value="0.61978870" />
+      <inertia
+        ixx="0.00443190"
+        ixy="0.00000145"
+        ixz=" 0.00012752"
+        iyy=" 0.00457581"
+        iyz=" 0.00007402"
+        izz="0.00050459" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_elbow_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_elbow_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_elbow_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.112 0 0"
+      rpy="1.5882 0 1.5708" />
+    <parent
+      link="right_elbow_pitch_link" />
+    <child
+      link="right_elbow_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="rigit_wrist_link">
+    <inertial>
+      <origin
+        xyz="0.0403674035732642 -0.000714776489093044 -0.000556006381557689"
+        rpy="0 0 0" />
+      <mass
+        value="0.530977498782354" />
+      <inertia
+        ixx="0.00071494"
+        ixy=" -0.00003439"
+        ixz="-0.00001249"
+        iyy=" 0.00251203"
+        iyz="-0.00000020"
+        izz=" 0.00204490" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/rigit_wrist_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/rigit_wrist_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rigit_wrist_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0015707 0.089986"
+      rpy="3.14159 -1.5708 0" />
+    <parent
+      link="right_elbow_yaw_link" />
+    <child
+      link="rigit_wrist_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_hip_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.00234962154213909 -0.000334965872979695 -0.0587783527038031"
+        rpy="0 0 0" />
+      <mass
+        value="2.11717139" />
+      <inertia
+        ixx="0.01260423"
+        ixy="0.00000079"
+        ixz="-0.00101030"
+        iyy="0.01293070"
+        iyz=" 0.00000855"
+        izz="0.00367238" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_hip_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_hip_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.083 0.093"
+      rpy="1.5708 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="left_hip_pitch_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_hip_roll_link">
+    <inertial>
+      <origin
+        xyz="0.0339392763728574 0.000707641540129922 -0.00118868893952378"
+        rpy="0 0 0" />
+      <mass
+        value="1.11362149071102" />
+      <inertia
+        ixx=" 0.00344196"
+        ixy="0.00002908"
+        ixz=" 0.00000520"
+        iyy="0.00568833"
+        iyz="0.00000074"
+        izz="0.00403652" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_hip_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_hip_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0.0001 0 -0.069"
+      rpy="-1.5708 0 -1.5708" />
+    <parent
+      link="left_hip_pitch_link" />
+    <child
+      link="left_hip_roll_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_hip_yaw_link">
+    <inertial>
+      <origin
+        xyz="0.00709562691370276 0.00152282713885865 -0.14358941161726"
+        rpy="0 0 0" />
+      <mass
+        value="3.41663678" />
+      <inertia
+        ixx="0.09600903"
+        ixy=" -0.00001170"
+        ixz=" -0.00135210"
+        iyy=" 0.09646604"
+        iyz=" 0.00294636"
+        izz="0.00555383" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_hip_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_hip_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.0895 0 0"
+      rpy="0 -1.5708 0" />
+    <parent
+      link="left_hip_roll_link" />
+    <child
+      link="left_hip_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_knee_link">
+    <inertial>
+      <origin
+        xyz="0.0929261545226963 -7.08673620576242E-05 0.000876016281906811"
+        rpy="0 0 0" />
+      <mass
+        value="2.06398159" />
+      <inertia
+        ixx=" 0.00366366"
+        ixy=" -0.00137216"
+        ixz="0.00006853"
+        iyy="0.04823126"
+        iyz="-0.00002129"
+        izz="0.04648209" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_knee_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_knee_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_knee_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.205"
+      rpy="-1.5708 1.5708 0" />
+    <parent
+      link="left_hip_yaw_link" />
+    <child
+      link="left_knee_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_ankle_up_handle_link">
+    <inertial>
+      <origin
+        xyz="0.0110496870018225 1.84697056809791E-06 -0.0137536737032209"
+        rpy="0 0 0" />
+      <mass
+        value="0.0627457459933312" />
+      <inertia
+        ixx="0.00002142"
+        ixy="6.5867517511598E-10"
+        ixz=" -0.00001573"
+        iyy="0.00003851"
+        iyz="6.9687044462173E-21"
+        izz="0.00002390" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_up_handle_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_up_handle_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_ankle_up_joint"
+    type="revolute">
+    <origin
+      xyz="0.144 0.0155 -0.0001"
+      rpy="-1.5708 1.2026 3.1416" />
+    <parent
+      link="left_knee_link" />
+    <child
+      link="left_ankle_up_handle_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_ankle_up_stick_link">
+    <inertial>
+      <origin
+        xyz="0.0990000083956893 3.47757656005143E-11 1.00513826428728E-10"
+        rpy="0 0 0" />
+      <mass
+        value="0.067623393002439" />
+      <inertia
+        ixx="0.00000134"
+        ixy="4.93941290768652E-13"
+        ixz="-3.45431678450446E-13"
+        iyy=" 0.00096207"
+        iyz="8.99271151243219E-14"
+        izz="0.00096207" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_up_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_up_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_ankle_up_stick_joint"
+    type="revolute">
+    <origin
+      xyz="0.025 0 -0.0254"
+      rpy="3.1416 0.00050505 1.9343" />
+    <parent
+      link="left_ankle_up_handle_link" />
+    <child
+      link="left_ankle_up_stick_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="copy_left_ankle_up_stick_link">
+    <inertial>
+      <origin
+        xyz="-1.11022302462516E-16 2.77555756156289E-17 1.38777878078145E-16"
+        rpy="0 0 0" />
+      <mass
+        value="3.05663706143592E-05" />
+      <inertia
+        ixx="7.70958653158127E-11"
+        ixy="-2.08917188973301E-25"
+        ixz="-1.16443442675311E-24"
+        iyy="7.70958653158128E-11"
+        iyz="-6.95222160510025E-26"
+        izz="3.32831853071798E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_left_ankle_up_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_left_ankle_up_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="copy_left_ankle_up_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.198 0 0"
+      rpy="1.5267 0 -3.1416" />
+    <parent
+      link="left_ankle_up_stick_link" />
+    <child
+      link="copy_left_ankle_up_stick_link" />
+    <axis
+      xyz="0 0 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_ankle_down_handle_link">
+    <inertial>
+      <origin
+        xyz="0.0110458850393573 -6.98572575008605E-06 0.0137536737032202"
+        rpy="0 0 0" />
+      <mass
+        value="0.0627457459933313" />
+      <inertia
+        ixx=" 0.00002142"
+        ixy="-1.2877764747101E-09"
+        ixz="0.00001573"
+        iyy=" 0.00003850"
+        iyz="4.14369915003556E-21"
+        izz=" 0.00002388" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_down_handle_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_down_handle_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_ankle_down_joint"
+    type="revolute">
+    <origin
+      xyz="0.202 0.0155 -0.0001"
+      rpy="1.5708 -1.2027 3.1416" />
+    <parent
+      link="left_knee_link" />
+    <child
+      link="left_ankle_down_handle_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_ankle_down_stick_link">
+    <inertial>
+      <origin
+        xyz="0.0700000010553677 -1.07555658823699E-10 -7.17010964490505E-11"
+        rpy="0 0 0" />
+      <mass
+        value="0.0509914067405019" />
+      <inertia
+        ixx="0.00000117"
+        ixy="0.00000000"
+        ixz=" 0.00000000"
+        iyy=" 0.00037415"
+        iyz=" 0.00000000"
+        izz="0.00037415" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_down_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_ankle_down_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_ankle_down_stick_joint"
+    type="revolute">
+    <origin
+      xyz="0.025 0 0.0254"
+      rpy="-3.1416 -0.00071429 1.9323" />
+    <parent
+      link="left_ankle_down_handle_link" />
+    <child
+      link="left_ankle_down_stick_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="copy_left_ankle_down_stick_link">
+    <inertial>
+      <origin
+        xyz="4.44089209850063E-16 -9.85322934354826E-16 -9.15933995315754E-16"
+        rpy="0 0 0" />
+      <mass
+        value="3.05663706143592E-05" />
+      <inertia
+        ixx="7.70958653158128E-11"
+        ixy="5.97767239540274E-26"
+        ixz="-8.04272091865409E-25"
+        iyy="7.70958653158128E-11"
+        iyz="-8.08613982287746E-26"
+        izz="3.32831853071797E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_left_ankle_down_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_left_ankle_down_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="copy_left_ankle_down_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.14 0 0"
+      rpy="-1.5478 -0.14849 3.1382" />
+    <parent
+      link="left_ankle_down_stick_link" />
+    <child
+      link="copy_left_ankle_down_stick_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_foot_cross_link">
+    <inertial>
+      <origin
+        xyz="1.76182853028894E-18 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.0797019546288868" />
+      <inertia
+        ixx="9.70666245599454E-06"
+        ixy="-1.39670334184036E-22"
+        ixz="6.3048799368176E-21"
+        iyy="1.41542091785121E-05"
+        iyz="-1.16690187154439E-20"
+        izz="6.53760763730951E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_foot_cross_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_foot_cross_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_foot_cross_joint"
+    type="revolute">
+    <origin
+      xyz="0.342 0 -0.0001"
+      rpy="-3.1416 0 -1.5708" />
+    <parent
+      link="left_knee_link" />
+    <child
+      link="left_foot_cross_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="left_foot_link">
+    <inertial>
+      <origin
+        xyz="0.00110712 0.02578261 0.00623867"
+        rpy="0 0 0" />
+      <mass
+        value="0.455526704645983" />
+      <inertia
+        ixx="0.00317437"
+        ixy="0.00000553"
+        ixz="0.00008000"
+        iyy="0.00338906"
+        iyz="0.00016110"
+        izz="0.00051062" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_foot_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/left_foot_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_foot_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="3.14159 -1.5708 0" />
+    <parent
+      link="left_foot_cross_link" />
+    <child
+      link="left_foot_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="fake_left_ankle_up_stick_link">
+    <inertial>
+      <origin
+        xyz="6.93889390390723E-18 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="4.24115008234623E-05" />
+      <inertia
+        ixx="1.51090971683585E-10"
+        ixy="9.18354961579912E-41"
+        ixz="1.51209935567162E-26"
+        iyy="1.51090971683585E-10"
+        iyz="7.03351650475433E-26"
+        izz="4.77129384263951E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_left_ankle_up_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_left_ankle_up_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fake_left_ankle_up_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.02425 -0.009 -0.041"
+      rpy="0 -1.5708 0" />
+    <parent
+      link="left_foot_link" />
+    <child
+      link="fake_left_ankle_up_stick_link" />
+    <axis
+      xyz="0 0 0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="fake_left_ankle_down_stick_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="4.24115008234623E-05" />
+      <inertia
+        ixx="1.51090971683585E-10"
+        ixy="9.86596372363323E-41"
+        ixz="-5.08582818412257E-26"
+        iyy="1.51090971683585E-10"
+        iyz="6.78041636012879E-26"
+        izz="4.77129384263951E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_left_ankle_down_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_left_ankle_down_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fake_left_ankle_down_stick_joint"
+    type="fixed">
+    <origin
+      xyz="-0.02425 -0.009 -0.041"
+      rpy="0 -1.5708 0" />
+    <parent
+      link="left_foot_link" />
+    <child
+      link="fake_left_ankle_down_stick_link" />
+    <axis
+      xyz="0 0 0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_hip_pitch_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="2.11693610" />
+      <inertia
+        ixx=" 0.01304277"
+        ixy="-0.00000141"
+        ixz=" 0.00000810"
+        iyy="0.01271658"
+        iyz=" 0.00098824"
+        izz="0.00367171" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_hip_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_hip_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.083 0.093"
+      rpy="1.5708 1.5708 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="right_hip_pitch_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_hip_roll_link">
+    <inertial>
+      <origin
+        xyz="0.0339393541569806 0.000707639995586401 0.00118879041860739"
+        rpy="0 0 0" />
+      <mass
+        value="1.11362036103427" />
+      <inertia
+        ixx=" 0.00344195"
+        ixy="0.00002908"
+        ixz=" -0.00000519"
+        iyy="0.00568832"
+        iyz="-0.00000075"
+        izz="0.00403652" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_hip_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_hip_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0001 0.069"
+      rpy="1.5708 0 0" />
+    <parent
+      link="right_hip_pitch_link" />
+    <child
+      link="right_hip_roll_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_hip_yaw_link">
+    <inertial>
+      <origin
+        xyz="0.00709207199263529 0.00152123786266559 0.14358583423123"
+        rpy="0 0 0" />
+      <mass
+        value="3.41663632" />
+      <inertia
+        ixx="0.09598700"
+        ixy="-0.00001597"
+        ixz="-0.00134041"
+        iyy=" 0.09644264"
+        iyz="-0.00294950"
+        izz="0.00555245" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_hip_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_hip_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.0895 0 0"
+      rpy="0 1.5708 0" />
+    <parent
+      link="right_hip_roll_link" />
+    <child
+      link="right_hip_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_knee_link">
+    <inertial>
+      <origin
+        xyz="7.08731099030965E-05 0.0929262557527222 -0.000877003844360624"
+        rpy="0 0 0" />
+      <mass
+        value=" 2.06398052" />
+      <inertia
+        ixx=" 0.04823161"
+        ixy=" 0.00137216"
+        ixz="0.00002213"
+        iyy="0.00366402"
+        iyz=" 0.00010965"
+        izz=" 0.04648209" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_knee_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_knee_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_knee_joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.0001 0.205"
+      rpy="1.5708 0 0" />
+    <parent
+      link="right_hip_yaw_link" />
+    <child
+      link="right_knee_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_ankle_up_handle_link">
+    <inertial>
+      <origin
+        xyz="0.0110496870018226 -1.84697056831995E-06 0.0137536737032208"
+        rpy="0 0 0" />
+      <mass
+        value="0.0627457459933312" />
+      <inertia
+        ixx="0.00002142"
+        ixy=" 0.00000000"
+        ixz=" 0.00001573"
+        iyy="0.00003851"
+        iyz="-4.76299422928618E-21"
+        izz="0.00002390" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_up_handle_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_up_handle_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_ankle_up_joint"
+    type="revolute">
+    <origin
+      xyz="-0.0155 0.144 0"
+      rpy="1.5708 -1.2026 -1.5708" />
+    <parent
+      link="right_knee_link" />
+    <child
+      link="right_ankle_up_handle_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_ankle_up_stick_link">
+    <inertial>
+      <origin
+        xyz="0.0990000085748252 -1.50167517309896E-10 -9.0782145689694E-11"
+        rpy="0 0 0" />
+      <mass
+        value="0.0676233931512217" />
+      <inertia
+        ixx="0.00000134"
+        ixy="-2.42091567743416E-13"
+        ixz="3.14394275552073E-13"
+        iyy="0.00096207"
+        iyz="8.68693225466902E-14"
+        izz="0.00096207" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_up_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_up_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_ankle_up_stick_joint"
+    type="revolute">
+    <origin
+      xyz="0.025 0 0.0254"
+      rpy="3.0885 -0.00050505 1.9343" />
+    <parent
+      link="right_ankle_up_handle_link" />
+    <child
+      link="right_ankle_up_stick_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="copy_right_ankle_up_stick_link">
+    <inertial>
+      <origin
+        xyz="1.11022302462516E-16 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="3.05663706143592E-05" />
+      <inertia
+        ixx="7.70958653158127E-11"
+        ixy="2.659849645788E-25"
+        ixz="-9.80042923323134E-25"
+        iyy="7.70958653158127E-11"
+        iyz="-2.11785610484201E-26"
+        izz="3.32831853071797E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_right_ankle_up_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_right_ankle_up_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="copy_right_ankle_up_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.198 0 0"
+      rpy="-1.5708 0 -3.1416" />
+    <parent
+      link="right_ankle_up_stick_link" />
+    <child
+      link="copy_right_ankle_up_stick_link" />
+    <axis
+      xyz="0 0 0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_ankle_down_handle_link">
+    <inertial>
+      <origin
+        xyz="0.0110458850393572 6.98572574991951E-06 -0.0137536737032202"
+        rpy="0 0 0" />
+      <mass
+        value="0.0627457459933313" />
+      <inertia
+        ixx=" 0.00002142"
+        ixy=" 0.00000000"
+        ixz=" -0.00001573"
+        iyy=" 0.00003850"
+        iyz="2.70791651480298E-22"
+        izz="0.00002388" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_down_handle_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_down_handle_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_ankle_down_joint"
+    type="revolute">
+    <origin
+      xyz="-0.0155 0.202 0"
+      rpy="-1.5708 1.2027 -1.5708" />
+    <parent
+      link="right_knee_link" />
+    <child
+      link="right_ankle_down_handle_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_ankle_down_stick_link">
+    <inertial>
+      <origin
+        xyz="0.0700000010382396 3.21797033464577E-11 7.12072831254851E-11"
+        rpy="0 0 0" />
+      <mass
+        value="0.0509914067620526" />
+      <inertia
+        ixx=" 0.00000117"
+        ixy="1.95461070114563E-13"
+        ixz="-1.98604175175973E-13"
+        iyy=" 0.00037415"
+        iyz="1.08729965956184E-13"
+        izz=" 0.00037415" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_down_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_ankle_down_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_ankle_down_stick_joint"
+    type="revolute">
+    <origin
+      xyz="0.025 0 -0.0254"
+      rpy="3.0859 0.00071429 1.9323" />
+    <parent
+      link="right_ankle_down_handle_link" />
+    <child
+      link="right_ankle_down_stick_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="copy_right_ankle_down_stick_link">
+    <inertial>
+      <origin
+        xyz="-5.55111512312578E-16 -1.75554015768853E-15 -6.10622663543836E-16"
+        rpy="0 0 0" />
+      <mass
+        value="3.05663706143593E-05" />
+      <inertia
+        ixx="7.70958653158127E-11"
+        ixy="1.70810474085695E-25"
+        ixz="-1.2743827042792E-24"
+        iyy="7.7095865315813E-11"
+        iyz="4.1080597240773E-26"
+        izz="3.32831853071802E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_right_ankle_down_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/copy_right_ankle_down_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="copy_right_ankle_down_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.14 0 0"
+      rpy="1.5708 0 -3.1416" />
+    <parent
+      link="right_ankle_down_stick_link" />
+    <child
+      link="copy_right_ankle_down_stick_link" />
+    <axis
+      xyz="0 0 0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="right_foot_cross_link">
+    <inertial>
+      <origin
+        xyz="2.7376104855259E-18 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.079701954628887" />
+      <inertia
+        ixx="9.70666245599456E-06"
+        ixy="-1.35093727039007E-23"
+        ixz="-2.49071635495749E-21"
+        iyy="1.41542091785122E-05"
+        iyz="-1.0074101079621E-21"
+        izz="6.53760763730951E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_foot_cross_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_foot_cross_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_foot_cross_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.342 0"
+      rpy="-3.1416 0 0" />
+    <parent
+      link="right_knee_link" />
+    <child
+      link="right_foot_cross_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/>
+  </joint>
+  <link
+    name="right_foot_link">
+    <inertial>
+      <origin
+        xyz="0.00110147 0.02669796 -0.00599450"
+        rpy="0 0 0" />
+      <mass
+        value="0.455526704645983" />
+      <inertia
+        ixx="0.00319393"
+        ixy=" 0.00000583"
+        ixz=" -0.00008034"
+        iyy="0.0034019"
+        iyz="-0.00016712"
+        izz="0.00052137" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_foot_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/right_foot_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_foot_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="3.1416 1.5708 0" />
+    <parent
+      link="right_foot_cross_link" />
+    <child
+      link="right_foot_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-3"
+      upper="3"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="fake_right_ankle_up_stick_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="4.24115008234623E-05" />
+      <inertia
+        ixx="1.51090971683584E-10"
+        ixy="4.59177480789956E-41"
+        ixz="6.25584670564167E-26"
+        iyy="1.51090971683584E-10"
+        iyz="-2.75454414630229E-26"
+        izz="4.77129384263951E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_right_ankle_up_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_right_ankle_up_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fake_right_ankle_up_stick_joint"
+    type="fixed">
+    <origin
+      xyz="0.02425 -0.009 0.041"
+      rpy="3.1416 1.5708 0" />
+    <parent
+      link="right_foot_link" />
+    <child
+      link="fake_right_ankle_up_stick_link" />
+    <axis
+      xyz="0 0 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+  <link
+    name="fake_right_ankle_down_stick_link">
+    <inertial>
+      <origin
+        xyz="6.93889390390723E-18 0 -2.77555756156289E-17"
+        rpy="0 0 0" />
+      <mass
+        value="4.24115008234623E-05" />
+      <inertia
+        ixx="1.51090971683584E-10"
+        ixy="9.18354961579912E-41"
+        ixz="2.12490184636399E-25"
+        iyy="1.51090971683584E-10"
+        iyz="-2.75454414630229E-26"
+        izz="4.77129384263951E-11" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_right_ankle_down_stick_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dolangh1/meshes/fake_right_ankle_down_stick_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fake_right_ankle_down_stick_joint"
+    type="fixed">
+    <origin
+      xyz="-0.02425 -0.009 0.041"
+      rpy="3.1416 1.5708 0" />
+    <parent
+      link="right_foot_link" />
+    <child
+      link="fake_right_ankle_down_stick_link" />
+    <axis
+      xyz="0 0 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  <dynamics damping="100" friction="0.8"/></joint>
+</robot>

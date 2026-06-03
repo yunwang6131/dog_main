@@ -239,9 +239,12 @@ class BarrierDreamWaQActor(MLPModel):
         kl_per_sample = -0.5 * torch.sum(1.0 + logvar - mu.pow(2) - logvar.exp(), dim=-1)
         kl_loss = kl_per_sample.mean()
 
-        terrain_target = self._terrain_stats_from_scan(obs[self.terrain_target_group])
-        terrain_prediction = self.terrain_aux_head(terrain_latent)
-        terrain_loss = F.mse_loss(terrain_prediction, terrain_target)
+        if self.terrain_loss_weight > 0.0 and self.terrain_target_group in obs:
+            terrain_target = self._terrain_stats_from_scan(obs[self.terrain_target_group])
+            terrain_prediction = self.terrain_aux_head(terrain_latent)
+            terrain_loss = F.mse_loss(terrain_prediction, terrain_target)
+        else:
+            terrain_loss = velocity.new_zeros(())
 
         total = (
             self.velocity_loss_weight * velocity_loss
