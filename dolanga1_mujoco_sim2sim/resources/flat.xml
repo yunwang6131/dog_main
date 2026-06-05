@@ -1,5 +1,0 @@
-<mujoco model="flat">
-    <worldbody>
-        <!-- Ground plane is already defined in Dolanga1.xml. -->
-    </worldbody>
-</mujoco>

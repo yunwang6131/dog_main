@@ -7,30 +7,29 @@ artifact:
 deployment_recommendation:
   mode: merged_torchscript
   separate_cenet_loader_required: false
-  reason: policy_full.pt already contains the DreamWaQ internal context encoder and actor inference path
+  reason: policy_full.pt already contains the BarrierDreamWaQ CENet and actor inference path
 
 policy_interface:
   inputs:
     history:
-      shape: [1, 450]
-      meaning: 10-step proprio history
+      shape: [1, 1290]
+      meaning: 10-step proprio history for DolangH1 (40 DoF)
     current:
-      shape: [1, 45]
-      meaning: current proprio frame
+      shape: [1, 129]
+      meaning: current proprio frame for DolangH1 (40 DoF)
   output:
     actions:
-      shape: [1, 12]
-      meaning: 12 joint actions before action_scale and PD conversion
+      shape: [1, 40]
+      meaning: 40 joint actions before action_scale and PD conversion
 
 input_order:
   - history
   - current
 
-
 observation_contract:
   history_len: 10
-  current_dim: 45
-  history_dim: 450
+  current_dim: 129
+  history_dim: 1290
   proprio_group_order:
     - base_ang_vel
     - projected_gravity
@@ -52,15 +51,15 @@ observation_contract:
       source: commanded [vx, vy, wz]
       scale: 1.0
     joint_pos:
-      dim: 12
+      dim: 40
       source: q - q_default
       scale: 1.0
     joint_vel:
-      dim: 12
+      dim: 40
       source: dq
       scale: 0.05
     actions:
-      dim: 12
+      dim: 40
       source: previous applied action
       scale: 1.0
   history_flatten_rule: concatenate each group oldest_to_newest, then concatenate groups in proprio_group_order
@@ -73,47 +72,17 @@ observation_contract:
     - actions
   critic_only_terms_not_needed:
     - base_lin_vel
-    - disturbance
-    - height_scan
+    - height_scan_feet
 
 control_contract:
   physics_dt_s: 0.005
   decimation: 4
   control_period_s: 0.02
   control_rate_hz: 50
-  joint_order:
-    - LF_hip_joint
-    - LF_thigh_joint
-    - LF_calf_joint
-    - RF_hip_joint
-    - RF_thigh_joint
-    - RF_calf_joint
-    - LH_hip_joint
-    - LH_thigh_joint
-    - LH_calf_joint
-    - RH_hip_joint
-    - RH_thigh_joint
-    - RH_calf_joint
-  joint_name_aliases:
-    LF_hip_joint: LF_HAA
-    LF_thigh_joint: LF_HFE
-    LF_calf_joint: LF_KFE
-    RF_hip_joint: RF_HAA
-    RF_thigh_joint: RF_HFE
-    RF_calf_joint: RF_KFE
-    LH_hip_joint: LH_HAA
-    LH_thigh_joint: LH_HFE
-    LH_calf_joint: LH_KFE
-    RH_hip_joint: RH_HAA
-    RH_thigh_joint: RH_HFE
-    RH_calf_joint: RH_KFE
-  q_default: [0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50]
-  action_scale: [0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25]
-  kp: [80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0]
-  kd: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-  tau_limit: [96.0, 156.0, 156.0, 96.0, 156.0, 156.0, 96.0, 156.0, 156.0, 96.0, 156.0, 156.0]
-  action_clip_before_pd: [-10.0, 10.0]
-  torque_formula: q_target= q_default + action_scale * clip(action, -10.0, 10.0)
+  init_base_height: 0.95
+  config_template: dolanga1_mujoco_sim2sim/deploy_mujoco/configs/dolangh1.yaml
+  action_clip_before_pd: [-100.0, 100.0]
+  torque_formula: q_target = q_default + action_scale * clip(action, -100.0, 100.0); tau = kp * (q_target - q) - kd * dq
 
 runtime_state:
   history_init: repeat_first_frame_until_full
@@ -122,37 +91,38 @@ runtime_state:
   policy_call_period: control_period_s
 
 command_ranges_seen_in_training:
-  lin_vel_x: [0.0, 1.5]
-  lin_vel_y: [-0.8, 0.8]
-  ang_vel_z: [-1.5, 1.5]
+  lin_vel_x: [0.0, 1.0]
+  lin_vel_y: [0.0, 0.0]
+  ang_vel_z: [0.0, 0.0]
 
 model_internal_contract:
   cenet_input:
     name: history
-    shape: [1, 450]
+    shape: [1, 1290]
     meaning: 10-step proprio history
     layout: group_major_oldest_to_newest
 
   cenet_output:
     - name: v_est
-      meaning: estimated velocity
+      meaning: estimated base_lin_vel (3D)
     - name: z
-      meaning: latent_mu
-      note: use latent_mu, not sampled latent
+      meaning: context latent_mu (16D)
+    - name: terrain_latent
+      meaning: terrain latent (8D, flat training uses terrain_loss_weight=0)
 
   actor_input:
-    source: concat(current, v_est, z)
+    source: concat(current, v_est, z, terrain_latent)
     order:
       - current
       - v_est
       - z
+      - terrain_latent
 
   normalizer:
-    applied_to: concat(current, v_est, z)
+    applied_to: concat(current, v_est, z, terrain_latent)
     before: mlp
     not_applied_to: history_before_cenet
 
   current_source:
     rule: latest control frame
     should_match_history_last_frame: true
-
