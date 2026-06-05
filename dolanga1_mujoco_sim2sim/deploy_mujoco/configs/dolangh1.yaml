@@ -1,0 +1,69 @@
+# MuJoCo sim2sim config template for DolangH1.
+# Joint order, default pose, action scale, PD gains, and torque limits mirror
+# robot_lab/assets/dolangh1.py and the training URDF.
+sim_duration: 120.0
+dt: 0.005
+decimation: 4
+warmup_seconds: 0.0
+history_len: 10
+init_base_height: 0.60
+
+mujoco_model_path: /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/dolangh1_scene.xml
+policy_path: /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolangh1_flat_dreamwaq/2026-06-05_01-44-37/exported/policy_full.pt
+
+base_body_name: base_link
+foot_body_names: [left_foot_link, right_foot_link]
+body_name_aliases:
+  left_foot_link: "left_foot_link"
+  right_foot_link: "right_foot_link"
+
+cmd: [0.5, 0.0, 0.0]
+
+joint_names:
+  - waist_joint
+  - lazy_waist_cross_joint
+  - lazy_torso_joint
+  - left_torso_joint
+  - lazy_torso_left_stick_joint
+  - right_torso_joint
+  - lazy_torso_right_stick_joint
+  - neck_yaw
+  - left_shoulder_pitch_joint
+  - left_shoulder_roll_joint
+  - left_shoulder_yaw_joint
+  - left_elbow_pitch_joint
+  - left_elbow_yaw_joint
+  - left_wrist_pitch_joint
+  - right_shoulder_pitch_joint
+  - right_shoulder_roll_joint
+  - right_shoulder_yaw_joint
+  - right_elbow_pitch_joint
+  - right_elbow_yaw_joint
+  - rigit_wrist_pitch_joint
+  - left_hip_pitch_joint
+  - left_hip_roll_joint
+  - left_hip_yaw_joint
+  - left_knee_joint
+  - left_ankle_up_joint
+  - left_ankle_up_stick_joint
+  - left_ankle_down_joint
+  - left_ankle_down_stick_joint
+  - left_foot_cross_joint
+  - left_foot_joint
+  - right_hip_pitch_joint
+  - right_hip_roll_joint
+  - right_hip_yaw_joint
+  - right_knee_joint
+  - right_ankle_up_joint
+  - right_ankle_up_stick_joint
+  - right_ankle_down_joint
+  - right_ankle_down_stick_joint
+  - right_foot_cross_joint
+  - right_foot_joint
+
+q_default: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.15, 0, 0, 0.3, -0.15, -0.15, -0.15, -0.15, 0, 0, -0.15, 0, 0, 0.3, -0.15, -0.15, -0.15, -0.15, 0, 0]
+action_scale: [0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.05, 0.2, 0.2, 0.2, 0.1, 0.1, 0.06, 0.2, 0.2, 0.2, 0.1, 0.1, 0.06, 0.32, 0.18, 0.12, 0.4, 0.3, 0.3, 0.3, 0.3, 0.14, 0.14, 0.32, 0.18, 0.12, 0.4, 0.3, 0.3, 0.3, 0.3, 0.14, 0.14]
+kp: [60, 60, 60, 60, 60, 60, 60, 60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80]
+kd: [3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+tau_limit: [80, 80, 80, 80, 80, 80, 80, 80, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120]
+action_clip: 100.0

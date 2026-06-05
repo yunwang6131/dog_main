@@ -52,6 +52,45 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
   --cmd_x 1.0 \
   --cmd_y 0.0 \
   --cmd_yaw 0.0
-# humanoid
+# humanoid 冒烟测试
 
 HYDRA_FULL_ERROR=1 python3 scripts/reinforcement_learning/rsl_rl/train.py   --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0   --headless   --num_envs 16   --max_iterations 1   --device cuda:0 2>&1 | tee error.log
+
+# humanoid 训练
+python3 scripts/reinforcement_learning/rsl_rl/train.py \
+  --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0 \
+  --headless \
+  --device cuda:0 \
+  --logger wandb \
+  --log_project_name humanoid \
+  --max_iteration 20000 \
+  --num_envs 1024
+
+# humanoid play
+
+python3 scripts/reinforcement_learning/rsl_rl/play.py \
+  --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0 \
+  --num_envs 16 \
+  --device cuda:0
+
+python3 scripts/reinforcement_learning/rsl_rl/train.py \
+  --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0 \
+  --headless \
+  --device cuda:0 \
+  --num_envs 512 \
+  --logger wandb \
+  --log_project_name humanoid \
+  --resume \
+  --load_run 2026-06-04_15-56-05 \
+  --checkpoint model_9800.pt
+
+# humanoid sim2sim
+
+cd /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
+  --config deploy_mujoco/configs/dolangh1.yaml \
+  --mouse_force_body base_link
+
+PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_no_exF_viewer.py \
+  --config deploy_mujoco/configs/dolangh1.yaml \
+  --cmd_x 0.3 --cmd_y 0.0 --cmd_yaw 0.0

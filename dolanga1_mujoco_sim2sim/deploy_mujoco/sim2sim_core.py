@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 import mujoco
 import numpy as np
 import torch
+import yaml
 
 
 @dataclass
@@ -79,7 +80,59 @@ class Sim2SimCfg:
     kp: np.ndarray = field(default_factory=lambda: np.array([80.0] * 12, dtype=np.float32))
     kd: np.ndarray = field(default_factory=lambda: np.array([2.0] * 12, dtype=np.float32))
     tau_limit: np.ndarray = field(default_factory=lambda: np.array([96.0, 156.0, 156.0] * 4, dtype=np.float32))
+    action_clip: float = 10.0
     cmd: np.ndarray = field(default_factory=lambda: np.array([1.0, 0.0, 0.0], dtype=np.float32))
+
+
+def load_sim2sim_cfg(path: str) -> Sim2SimCfg:
+    with open(path, "r", encoding="utf-8") as f:
+        raw_cfg = yaml.safe_load(f) or {}
+
+    valid_fields = {item.name for item in fields(Sim2SimCfg)}
+    unknown_fields = sorted(set(raw_cfg) - valid_fields)
+    if unknown_fields:
+        raise ValueError(f"Unknown sim2sim config fields in {path}: {unknown_fields}")
+
+    return Sim2SimCfg(**raw_cfg)
+
+
+def resolve_sim2sim_cfg(
+    config_path: str | None,
+    load_model: str | None,
+    policy: str | None,
+    sim_duration: float | None,
+    cmd_x: float | None,
+    cmd_y: float | None,
+    cmd_yaw: float | None,
+) -> Sim2SimCfg:
+    if config_path:
+        cfg = load_sim2sim_cfg(config_path)
+        if load_model:
+            cfg.mujoco_model_path = load_model
+        if policy:
+            cfg.policy_path = policy
+        if sim_duration is not None:
+            cfg.sim_duration = sim_duration
+    else:
+        if not load_model or not policy:
+            raise ValueError("Pass either --config or both --load_model and --policy.")
+        cfg = Sim2SimCfg(
+            mujoco_model_path=load_model,
+            policy_path=policy,
+            sim_duration=120.0 if sim_duration is None else sim_duration,
+        )
+
+    if cmd_x is not None or cmd_y is not None or cmd_yaw is not None:
+        cfg.cmd = np.array(
+            [
+                cfg.cmd[0] if cmd_x is None else cmd_x,
+                cfg.cmd[1] if cmd_y is None else cmd_y,
+                cfg.cmd[2] if cmd_yaw is None else cmd_yaw,
+            ],
+            dtype=np.float32,
+        )
+
+    return cfg
 
 
 def quat_to_rotmat_wxyz(q_wxyz: np.ndarray) -> np.ndarray:
@@ -138,13 +191,12 @@ class Sim2SimRunner:
             raise ValueError(f"cmd must have shape (3,), got {self.cmd.shape}")
         if self.cfg.history_len <= 0:
             raise ValueError(f"history_len must be positive, got {self.cfg.history_len}")
-
-        # Policy was trained with 12 leg joints and 10 history frames.
-        if self.n_joints != 12:
-            raise ValueError(f"Expected 12 joints for this policy, got {self.n_joints}: {self.cfg.joint_names}")
+        if self.cfg.action_clip <= 0.0:
+            raise ValueError(f"action_clip must be positive, got {self.cfg.action_clip}")
 
         self.qpos_idx, self.qvel_idx, self.joint_ids = self._build_joint_indices()
         self.actuator_idx = self._build_actuator_indices(self.joint_ids)
+        self.foot_body_ids = self._build_body_indices(self.cfg.foot_body_names)
         self.last_action = np.zeros(self.n_joints, dtype=np.float32)
         self.obs_history: dict[str, list[np.ndarray]] = {
             "base_ang_vel": [],
@@ -154,7 +206,7 @@ class Sim2SimRunner:
             "joint_vel": [],
             "actions": [],
         }
-        self._proprio_frame_dim = 45
+        self._proprio_frame_dim = 9 + 3 * self.n_joints
         self._history_obs_dim = self._proprio_frame_dim * self.cfg.history_len
         self._current_obs_dim = self._proprio_frame_dim
         self._actor_obs_dim = self._history_obs_dim + self._current_obs_dim
@@ -168,6 +220,11 @@ class Sim2SimRunner:
             f"kp={self.kp[0]:.1f}, kd={self.kd[0]:.1f}, "
             f"init_base_height={self.cfg.init_base_height:.3f}"
         )
+        if self.cfg.debug_print:
+            joint_map = ", ".join(
+                f"{joint}:act{actuator}" for joint, actuator in zip(self.cfg.joint_names, self.actuator_idx)
+            )
+            print(f"[INFO] joint actuator map: {joint_map}")
 
     def _as_vector(self, value: np.ndarray, name: str) -> np.ndarray:
         arr = np.asarray(value, dtype=np.float32)
@@ -366,11 +423,12 @@ class Sim2SimRunner:
             if not np.all(np.isfinite(raw_action)):
                 raise RuntimeError(f"Policy output NaN/Inf at step {step_id}: {raw_action}")
 
-            action = np.clip(raw_action, -10.0, 10.0)
+            action = np.clip(raw_action, -self.cfg.action_clip, self.cfg.action_clip)
 
             self.last_action = action.copy()
         else:
             action = self.last_action
+            raw_action = action
 
         q_target = self.q_default + action * self.action_scale
 
@@ -386,12 +444,25 @@ class Sim2SimRunner:
         self.data.ctrl[:] = 0.0
         self.data.ctrl[self.actuator_idx] = tau
         if self.cfg.debug_print and step_id % 100 == 0:
+            top_action_ids = np.argsort(-np.abs(action))[: min(5, self.n_joints)]
+            top_actions = ", ".join(
+                f"{self.cfg.joint_names[i]}={action[i]:.2f}" for i in top_action_ids
+            )
+            foot_z = ", ".join(
+                f"{self.cfg.foot_body_names[i]}={self.data.xpos[body_id, 2]:.3f}"
+                for i, body_id in enumerate(self.foot_body_ids)
+            )
             print(
                 f"[step {step_id}] "
                 f"z={self.data.qpos[2]:.3f}, "
+                f"ncon={self.data.ncon}, "
+                f"foot_z=[{foot_z}], "
                 f"gravity_xy={np.linalg.norm(projected_gravity_body[:2]):.3f}, "
                 f"ang_vel={np.linalg.norm(base_ang_vel_body):.3f}, "
+                f"raw_action_max={np.max(np.abs(raw_action)):.3f}, "
                 f"action_max={np.max(np.abs(action)):.3f}, "
+                f"top_actions=[{top_actions}], "
+                f"q_err_max={np.max(np.abs(q - self.q_default)):.3f}, "
                 f"dq_max={np.max(np.abs(dq)):.3f}, "
                 f"tau_max={np.max(np.abs(tau)):.3f}, "
                 f"tau_sat={np.mean(np.abs(tau_raw) >= self.tau_limit):.2f}"

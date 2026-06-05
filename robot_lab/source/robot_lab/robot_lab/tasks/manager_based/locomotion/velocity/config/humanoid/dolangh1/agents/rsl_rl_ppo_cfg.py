@@ -51,9 +51,9 @@ class DreamWaQActorCfg(RslRlMLPModelCfg):
     velocity_dim: int = 3
     encoder_hidden_dims: list[int] = [512, 256]
     decoder_hidden_dims: list[int] = [256, 512]
-    beta_kl: float = 0.01
-    velocity_loss_weight: float = 1.0
-    reconstruction_loss_weight: float = 1.0
+    beta_kl: float = 0.03
+    velocity_loss_weight: float = 0.5
+    reconstruction_loss_weight: float = 0.25
     terrain_loss_weight: float = 0.25
     kl_loss_weight: float = 1.0
     logvar_min: float = -10.0
@@ -73,7 +73,8 @@ class DolangH1RoughDreamWaQRunnerCfg(RslRlOnPolicyRunnerCfg):
     max_iterations = 10000
     save_interval = 100
     experiment_name = "dolangh1_rough_dreamwaq"
-
+    logger = "wandb"
+    wandb_project = "humanoid"
     obs_groups = {
         "actor": PROPRIO_GROUPS,
         "critic": CRITIC_OBS_GROUPS,
@@ -97,7 +98,7 @@ class DolangH1RoughDreamWaQRunnerCfg(RslRlOnPolicyRunnerCfg):
         value_loss_coef=1.0,
         use_clipped_value_loss=True,
         clip_param=0.2,
-        entropy_coef=0.01,
+        entropy_coef=0.003,
         num_learning_epochs=5,
         num_mini_batches=4,
         learning_rate=1.0e-3,
@@ -120,6 +121,7 @@ class DolangH1FlatDreamWaQRunnerCfg(DolangH1RoughDreamWaQRunnerCfg):
             "critic": FLAT_CRITIC_OBS_GROUPS,
         }
         self.actor.terrain_loss_weight = 0.0
+        self.algorithm.estimator_loss_coef = 0.2
 
 
 @configclass
@@ -130,8 +132,10 @@ class DolangH1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     max_iterations = 3000
     save_interval = 100
     experiment_name = "dolangh1_rough"
+    logger = "wandb"
+    wandb_project = "robot_lab"
     policy = RslRlPpoActorCriticCfg(
-        init_noise_std=1.0,
+        init_noise_std=0.5,
         actor_obs_normalization=False,
         critic_obs_normalization=False,
         actor_hidden_dims=[512, 256, 128],
@@ -142,15 +146,15 @@ class DolangH1RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         value_loss_coef=1.0,
         use_clipped_value_loss=True,
         clip_param=0.2,
-        entropy_coef=0.01,
+        entropy_coef=0.001,
         num_learning_epochs=5,
         num_mini_batches=4,
-        learning_rate=1.0e-3,
+        learning_rate=3.0e-4,
         schedule="adaptive",
         gamma=0.99,
         lam=0.95,
-        desired_kl=0.01,
-        max_grad_norm=1.0,
+        desired_kl=0.006,
+        max_grad_norm=0.5,
     )
 
 
@@ -160,4 +164,3 @@ class DolangH1FlatPPORunnerCfg(DolangH1RoughPPORunnerCfg):
         super().__post_init__()
         self.max_iterations = 1500
         self.experiment_name = "dolangh1_flat"
-

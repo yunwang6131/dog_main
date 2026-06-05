@@ -8,19 +8,19 @@ import mujoco
 import numpy as np
 from mujoco.glfw import glfw
 
-from deploy_mujoco.sim2sim_core import Sim2SimCfg, Sim2SimRunner, quat_to_rotmat_wxyz
+from deploy_mujoco.sim2sim_core import Sim2SimRunner, quat_to_rotmat_wxyz, resolve_sim2sim_cfg
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dolanga1 sim2sim runner with GLFW mouse force.")
-    parser.add_argument("--load_model", type=str, required=True)
-    parser.add_argument("--policy", type=str, required=True)
-    parser.add_argument("--sim_duration", type=float, default=120.0)
+    parser.add_argument("--config", type=str, help="Path to sim2sim yaml config.")
+    parser.add_argument("--load_model", type=str)
+    parser.add_argument("--policy", type=str)
+    parser.add_argument("--sim_duration", type=float)
 
-    parser.add_argument("--cmd_x", type=float, default=1.0)
-    parser.add_argument("--cmd_y", type=float, default=0.0)
-    parser.add_argument("--cmd_yaw", type=float, default=0.0)
-
+    parser.add_argument("--cmd_x", type=float)
+    parser.add_argument("--cmd_y", type=float)
+    parser.add_argument("--cmd_yaw", type=float)
     parser.add_argument("--hide_velocity_vis", action="store_true")
     parser.add_argument("--velocity_arrow_scale", type=float, default=0.6)
 
@@ -265,11 +265,14 @@ class MouseCameraController:
 def main() -> None:
     args = parse_args()
 
-    cfg = Sim2SimCfg(
-        mujoco_model_path=args.load_model,
-        policy_path=args.policy,
-        sim_duration=args.sim_duration,
-        cmd=np.array([args.cmd_x, args.cmd_y, args.cmd_yaw], dtype=np.float32),
+    cfg = resolve_sim2sim_cfg(
+        args.config,
+        args.load_model,
+        args.policy,
+        args.sim_duration,
+        args.cmd_x,
+        args.cmd_y,
+        args.cmd_yaw,
     )
 
     runner = Sim2SimRunner(cfg)

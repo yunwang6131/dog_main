@@ -79,6 +79,35 @@ def track_ang_vel_z_world_exp(
     return reward
 
 
+def face_velocity_direction_exp(
+    env,
+    command_name: str,
+    std: float,
+    min_command_speed: float = 0.15,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Reward the robot yaw facing the commanded planar velocity direction."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    planar_command = command[:, :2]
+    command_speed = torch.linalg.norm(planar_command, dim=1)
+
+    forward_b = torch.zeros_like(asset.data.root_lin_vel_w[:, :3])
+    forward_b[:, 0] = 1.0
+    forward_w = math_utils.quat_apply(
+        yaw_quat(asset.data.root_quat_w),
+        forward_b,
+    )
+    forward_xy = torch.nn.functional.normalize(forward_w[:, :2], dim=1)
+    command_xy = torch.nn.functional.normalize(planar_command, dim=1)
+    heading_error = 1.0 - torch.sum(forward_xy * command_xy, dim=1)
+
+    reward = torch.exp(-heading_error / std**2)
+    reward *= command_speed > min_command_speed
+    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
+    return reward
+
+
 def joint_power(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Reward joint_power"""
     # extract the used quantities (to enable type-hinting)
@@ -556,6 +585,35 @@ def feet_contact_without_cmd(env: ManagerBasedRLEnv, command_name: str, sensor_c
     return reward
 
 
+def no_flight_biped(env: ManagerBasedRLEnv, command_name: str, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize biped states where neither foot is in contact while moving."""
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    in_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0.0
+    no_foot_contact = torch.sum(in_contact.int(), dim=1) == 0
+
+    reward = no_foot_contact.float()
+    reward *= torch.linalg.norm(env.command_manager.get_command(command_name), dim=1) > 0.1
+    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
+    return reward
+
+
+def single_foot_contact(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    sensor_cfg: SceneEntityCfg,
+    command_threshold: float = 0.1,
+) -> torch.Tensor:
+    """Reward biped locomotion states with exactly one foot in contact."""
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    in_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0.0
+    contact_count = torch.sum(in_contact.int(), dim=1)
+
+    reward = (contact_count == 1).float()
+    reward *= torch.linalg.norm(env.command_manager.get_command(command_name), dim=1) > command_threshold
+    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
+    return reward
+
+
 def feet_stumble(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
     # extract the used quantities (to enable type-hinting)
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
@@ -771,6 +829,21 @@ def base_height_l2(
         adjusted_target_height = target_height
     # Compute the L2 squared penalty
     reward = torch.square(asset.data.root_pos_w[:, 2] - adjusted_target_height)
+    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
+    return reward
+
+
+def base_bounce_l2(
+    env: ManagerBasedRLEnv,
+    target_height: float,
+    height_deadband: float,
+    vertical_velocity_weight: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize vertical base oscillation while allowing a small height deadband."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    height_error = torch.clamp(torch.abs(asset.data.root_pos_w[:, 2] - target_height) - height_deadband, min=0.0)
+    reward = torch.square(height_error) + vertical_velocity_weight * torch.square(asset.data.root_lin_vel_b[:, 2])
     reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
 
