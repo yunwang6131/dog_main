@@ -20,9 +20,11 @@ from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import (
     create_obsgroup_class,
 )
 
-# Diagonal trot: LF/RH in phase, RF/LH in opposite phase.
-_TROT_PERIOD = 0.62 #0.68
-_TROT_PHASE_OFFSETS = [0.0, 0.45, 0.55, 0.0] # LF, RF, LH, RH  walk [0.0, 0.25, 0.5, 0.75] trot [0.0, 0.48, 0.52, 0.0] 
+_GAIT_VELOCITY_THRESHOLD = 1.0 # 1.0换速
+_WALK_PERIOD = 0.72
+_WALK_PHASE_OFFSETS = [0.0, 0.45, 0.55, 0.0] # （LF, RF, LH, RH).
+_TROT_PERIOD = 0.62
+_TROT_PHASE_OFFSETS = [0.0, 0.45, 0.55, 0.0]
 _FOOT_BODY_NAMES = ["LF_foot_link", "RF_foot_link", "LH_foot_link", "RH_foot_link"]
 _FOOT_SENSOR_CFG = SceneEntityCfg("contact_forces", body_names=_FOOT_BODY_NAMES)
 _FOOT_ASSET_CFG = SceneEntityCfg("robot", body_names=_FOOT_BODY_NAMES)
@@ -43,13 +45,19 @@ _HIND_TERRAIN_SENSOR_CFGS = _FOOT_TERRAIN_SENSOR_CFGS[2:]
 _PAPER_ENV_RECIPE = {
     "num_envs": 400,
     "decimation": 4,
-    "episode_length_s": 4.0,
-    "command_resampling_time_range": (5.0, 5.0),
+    "episode_length_s": 8.0, # 8秒一个episode
+    "command_resampling_time_range": (8.0, 8.0), # 8秒换一次指令
+}
+
+_VELOCITY_GAIT_PARAMS = {
+    "walk_period": _WALK_PERIOD,
+    "walk_phase_offsets": _WALK_PHASE_OFFSETS,
+    "trot_period": _TROT_PERIOD,
+    "trot_phase_offsets": _TROT_PHASE_OFFSETS,
+    "gait_velocity_threshold": _GAIT_VELOCITY_THRESHOLD,
 }
 
 _BARRIER_GAIT_PARAMS = {
-    "period": _TROT_PERIOD,
-    "phase_offsets": _TROT_PHASE_OFFSETS,
     "sensor_cfg": _FOOT_SENSOR_CFG,
     "d_lower": -0.6,
     "d_upper": 2.0,
@@ -58,24 +66,27 @@ _BARRIER_GAIT_PARAMS = {
     "command_name": "base_velocity",
     "command_threshold": 0.08,
     "stand_threshold": 0.05,
+    **_VELOCITY_GAIT_PARAMS,
 }
 
 _BARRIER_FOOT_CLEARANCE_PARAMS = {
-    "period": _TROT_PERIOD,
-    "phase_offsets": _TROT_PHASE_OFFSETS,
     "sensor_cfg": _FOOT_SENSOR_CFG,
     "asset_cfg": _FOOT_ASSET_CFG,
     "terrain_sensor_cfgs": _FOOT_TERRAIN_SENSOR_CFGS,
-    "p_des": 0.12,
+    "walk_p_des": 0.10,
+    "trot_p_des": 0.12,
+    "walk_d_lower_clearance": -0.04,
+    "walk_d_upper_clearance": 0.40,
+    "trot_d_lower_clearance": -0.06,
+    "trot_d_upper_clearance": 0.40,
     "d_lower_gait": -0.6,
-    "d_lower_clearance": -0.06,
-    "d_upper_clearance": 0.40,
     "delta": 0.01,
     "alpha": 0.1,
     "command_name": "base_velocity",
     "command_threshold": 0.08,
     "stand_threshold": 0.05,
     "terrain_height": 0.0,
+    **_VELOCITY_GAIT_PARAMS,
 }
 
 _BARRIER_JOINT_POSITION_PARAMS = {
@@ -193,7 +204,13 @@ def _add_paper_observations(cfg) -> None:
         {
             "phase": ObsTerm(
                 func=mdp.phase_with_command,
-                params={"cycle_time": _TROT_PERIOD, "command_name": "base_velocity", "stand_threshold": 0.05},
+                params={
+                    "command_name": "base_velocity",
+                    "stand_threshold": 0.05,
+                    "walk_cycle_time": _WALK_PERIOD,
+                    "trot_cycle_time": _TROT_PERIOD,
+                    "gait_velocity_threshold": _GAIT_VELOCITY_THRESHOLD,
+                },
                 clip=(-1.0, 1.0),
                 scale=1.0,
             )
@@ -332,7 +349,7 @@ def _tune_for_barrier_training(cfg) -> None:
     cfg.terminations.illegal_contact.params["sensor_cfg"].body_names = [
         ".*_hip_link",
         ".*_thigh_link",
-        ".*_calf_link",
+        # ".*_calf_link",
         cfg.base_link_name,
     ]
 
@@ -356,20 +373,8 @@ def _tune_sim2real_robustness(cfg) -> None:
         push_event.interval_range_s = (6.0, 10.0)
         push_event.params["velocity_range"] = {"x": (-0.3, 0.3), "y": (-0.3, 0.3)}
 
-    cfg.curriculum.command_levels_lin_vel = CurrTerm(
-        func=mdp.command_levels_lin_vel,
-        params={
-            "reward_term_name": "paper_standard_reward",
-            "range_multiplier": (0.20, 0.80),
-        },
-    )
-    cfg.curriculum.command_levels_ang_vel = CurrTerm(
-        func=mdp.command_levels_ang_vel,
-        params={
-            "reward_term_name": "paper_standard_reward",
-            "range_multiplier": (0.20, 0.75),
-        },
-    )
+    cfg.curriculum.command_levels_lin_vel = None
+    cfg.curriculum.command_levels_ang_vel = None
 
     cfg.events.randomize_right_leg_actuator_gains = EventTerm(
         func=mdp.scale_actuator_gains_for_joints,
@@ -397,6 +402,7 @@ class Dolanga1RoughBarrierStyleEnvCfg(Dolanga1RoughEnvCfg):
         _add_paper_standard_reward(self)
         _tune_for_barrier_training(self)
         _tune_sim2real_robustness(self)
+        self.scene.terrain.max_init_terrain_level = 5
         if self.__class__.__name__ == "Dolanga1RoughBarrierStyleEnvCfg":
             self.disable_zero_weight_rewards()
 
@@ -415,5 +421,6 @@ class Dolanga1FlatBarrierStyleEnvCfg(Dolanga1FlatEnvCfg):
         _add_paper_standard_reward(self)
         _tune_for_barrier_training(self)
         _tune_sim2real_robustness(self)
+        self.scene.terrain.max_init_terrain_level = 5
         if self.__class__.__name__ == "Dolanga1FlatBarrierStyleEnvCfg":
             self.disable_zero_weight_rewards()

@@ -15,6 +15,10 @@ from isaaclab.sensors import ContactSensor
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 
+from robot_lab.tasks.manager_based.locomotion.velocity.mdp.barrier_style_rewards import (
+    command_uses_trot_gait,
+)
+
 
 def joint_pos_rel_without_wheel(
     env: ManagerBasedEnv,
@@ -39,12 +43,37 @@ def phase(env: ManagerBasedRLEnv, cycle_time: float) -> torch.Tensor:
 
 def phase_with_command(
     env: ManagerBasedRLEnv,
-    cycle_time: float,
     command_name: str = "base_velocity",
     stand_threshold: float = 0.2,
+    cycle_time: float | None = None,
+    walk_cycle_time: float | None = None,
+    trot_cycle_time: float | None = None,
+    gait_velocity_threshold: float | None = None,
 ) -> torch.Tensor:
     """Return gait phase features and zero them in stand-mode, matching the paper description."""
-    phase_tensor = phase(env, cycle_time)
+    if not hasattr(env, "episode_length_buf") or env.episode_length_buf is None:
+        env.episode_length_buf = torch.zeros(env.num_envs, device=env.device, dtype=torch.long)
+
+    t = env.episode_length_buf.float() * env.step_dt
+    if gait_velocity_threshold is not None:
+        if walk_cycle_time is None or trot_cycle_time is None:
+            raise ValueError("Velocity-selective phase requires walk_cycle_time and trot_cycle_time.")
+        use_trot = command_uses_trot_gait(env, command_name, gait_velocity_threshold)
+        cycle_time_per_env = torch.where(
+            use_trot,
+            torch.full_like(t, trot_cycle_time),
+            torch.full_like(t, walk_cycle_time),
+        )
+        phase_norm = t / cycle_time_per_env
+    else:
+        if cycle_time is None:
+            raise ValueError("Fixed phase observation requires cycle_time.")
+        phase_norm = t / cycle_time
+
+    phase_tensor = torch.stack(
+        (torch.sin(2.0 * torch.pi * phase_norm), torch.cos(2.0 * torch.pi * phase_norm)),
+        dim=-1,
+    )
     command = env.command_manager.get_command(command_name)
     moving_mask = (torch.linalg.norm(command, dim=1, keepdim=True) >= stand_threshold).float()
     return phase_tensor * moving_mask

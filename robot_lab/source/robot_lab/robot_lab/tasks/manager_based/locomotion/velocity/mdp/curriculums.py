@@ -13,9 +13,42 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import torch
+from isaaclab.assets import Articulation
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.terrains import TerrainImporter
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
+
+
+def terrain_levels_vel_ratio(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    move_up_fraction: float = 0.60,
+    move_down_fraction: float = 0.40,
+    stand_command_threshold: float = 0.08,
+) -> torch.Tensor:
+    """Terrain curriculum keyed to commanded-distance completion ratio (slow-speed friendly).
+
+    Expected distance per episode is ``||cmd_xy|| * episode_length_s``. Upgrade when the robot
+    walks farther than ``move_up_fraction`` of that expectation; downgrade when it walks less
+    than ``move_down_fraction``. Stand/near-zero commands skip both checks.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    terrain: TerrainImporter = env.scene.terrain
+    command = env.command_manager.get_command("base_velocity")
+    distance = torch.norm(asset.data.root_pos_w[env_ids, :2] - env.scene.env_origins[env_ids, :2], dim=1)
+    cmd_speed = torch.norm(command[env_ids, :2], dim=1)
+    expected_distance = cmd_speed * env.max_episode_length_s
+    moving = cmd_speed > stand_command_threshold
+
+    move_up = moving & (distance > expected_distance * move_up_fraction)
+    move_down = moving & (distance < expected_distance * move_down_fraction)
+    move_down &= ~move_up
+
+    terrain.update_env_origins(env_ids, move_up, move_down)
+    return torch.mean(terrain.terrain_levels.float())
 
 
 def command_levels_lin_vel(

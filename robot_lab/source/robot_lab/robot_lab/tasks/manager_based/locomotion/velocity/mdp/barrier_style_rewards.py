@@ -60,6 +60,34 @@ def _stand_mode(env: "ManagerBasedRLEnv", command_name: str, threshold: float = 
     return (torch.linalg.norm(cmd, dim=1) < threshold).float()
 
 
+def planar_command_speed(env: "ManagerBasedRLEnv", command_name: str = "base_velocity") -> torch.Tensor:
+    """Planar speed from velocity command (vx, vy)."""
+    cmd = env.command_manager.get_command(command_name)
+    return torch.linalg.norm(cmd[:, :2], dim=1)
+
+
+def command_uses_trot_gait(
+    env: "ManagerBasedRLEnv", command_name: str, gait_velocity_threshold: float
+) -> torch.Tensor:
+    """True when planar command speed >= threshold (trot); otherwise walk."""
+    return planar_command_speed(env, command_name) >= gait_velocity_threshold
+
+
+def _per_gait_env_scalars(
+    use_trot: torch.Tensor,
+    *,
+    walk_value: float,
+    trot_value: float,
+    reference: torch.Tensor,
+) -> torch.Tensor:
+    """Expand walk/trot scalars to a per-env vector on the reference device/dtype."""
+    return torch.where(
+        use_trot,
+        torch.full_like(reference, trot_value),
+        torch.full_like(reference, walk_value),
+    )
+
+
 def _mean_terrain_height(
     env: "ManagerBasedRLEnv",
     sensor_cfg: SceneEntityCfg,
@@ -99,10 +127,16 @@ def _terrain_heights_from_sensors(
 def _get_gait_state(
     env: "ManagerBasedRLEnv",
     *,
-    period: float,
-    phase_offsets: list[float],
     sensor_cfg: SceneEntityCfg,
     contact_threshold: float = 1.0,
+    period: float | None = None,
+    phase_offsets: list[float] | None = None,
+    walk_period: float | None = None,
+    walk_phase_offsets: list[float] | None = None,
+    trot_period: float | None = None,
+    trot_phase_offsets: list[float] | None = None,
+    gait_velocity_threshold: float | None = None,
+    command_name: str = "base_velocity",
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Return gait cycle g_i in [-1, 1], constraint variable f_i, and contact flags."""
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
@@ -112,9 +146,40 @@ def _get_gait_state(
     t = env.episode_length_buf.float() * env.step_dt
     num_feet = len(sensor_cfg.body_ids)
     g = torch.zeros(env.num_envs, num_feet, device=env.device)
-    for i, phi in enumerate(phase_offsets):
-        phase = (t / period + phi) * (2.0 * math.pi)
-        g[:, i] = torch.sin(phase)
+
+    if gait_velocity_threshold is not None:
+        if (
+            walk_period is None
+            or walk_phase_offsets is None
+            or trot_period is None
+            or trot_phase_offsets is None
+        ):
+            raise ValueError(
+                "Velocity-selective gait requires walk_period, walk_phase_offsets, "
+                "trot_period, and trot_phase_offsets."
+            )
+        if len(walk_phase_offsets) != num_feet or len(trot_phase_offsets) != num_feet:
+            raise ValueError("walk_phase_offsets and trot_phase_offsets must match the number of feet.")
+        use_trot = command_uses_trot_gait(env, command_name, gait_velocity_threshold)
+        period_per_env = torch.where(
+            use_trot,
+            torch.full_like(t, trot_period),
+            torch.full_like(t, walk_period),
+        )
+        for i in range(num_feet):
+            phi = torch.where(
+                use_trot,
+                torch.full_like(t, trot_phase_offsets[i]),
+                torch.full_like(t, walk_phase_offsets[i]),
+            )
+            phase_angle = (t / period_per_env + phi) * (2.0 * math.pi)
+            g[:, i] = torch.sin(phase_angle)
+    else:
+        if period is None or phase_offsets is None:
+            raise ValueError("Fixed gait requires period and phase_offsets.")
+        for i, phi in enumerate(phase_offsets):
+            phase_angle = (t / period + phi) * (2.0 * math.pi)
+            g[:, i] = torch.sin(phase_angle)
 
     # Eq. (2): f_i = g_i if contacting else -g_i
     f = torch.where(is_contact, g, -g)
@@ -123,9 +188,14 @@ def _get_gait_state(
 
 def barrier_style_gait(
     env: "ManagerBasedRLEnv",
-    period: float,
-    phase_offsets: list[float],
     sensor_cfg: SceneEntityCfg,
+    period: float | None = None,
+    phase_offsets: list[float] | None = None,
+    walk_period: float | None = None,
+    walk_phase_offsets: list[float] | None = None,
+    trot_period: float | None = None,
+    trot_phase_offsets: list[float] | None = None,
+    gait_velocity_threshold: float | None = None,
     d_lower: float = -0.6,
     d_upper: float = 2.0,
     delta: float = 0.1,
@@ -135,7 +205,18 @@ def barrier_style_gait(
     stand_threshold: float = 0.2,
 ) -> torch.Tensor:
     """Preferred gait via relaxed barrier on f_i (Sec. III-B, Table I)."""
-    _, f, is_contact = _get_gait_state(env, period=period, phase_offsets=phase_offsets, sensor_cfg=sensor_cfg)
+    _, f, is_contact = _get_gait_state(
+        env,
+        sensor_cfg=sensor_cfg,
+        period=period,
+        phase_offsets=phase_offsets,
+        walk_period=walk_period,
+        walk_phase_offsets=walk_phase_offsets,
+        trot_period=trot_period,
+        trot_phase_offsets=trot_phase_offsets,
+        gait_velocity_threshold=gait_velocity_threshold,
+        command_name=command_name,
+    )
     moving_mask = _command_active(env, command_name, command_threshold)
     stand_mask = _stand_mode(env, command_name, stand_threshold)
     reward = torch.zeros(env.num_envs, device=env.device)
@@ -161,12 +242,23 @@ def barrier_style_gait(
 
 def barrier_style_foot_clearance(
     env: "ManagerBasedRLEnv",
-    period: float,
-    phase_offsets: list[float],
     sensor_cfg: SceneEntityCfg,
     asset_cfg: SceneEntityCfg,
+    period: float | None = None,
+    phase_offsets: list[float] | None = None,
+    walk_period: float | None = None,
+    walk_phase_offsets: list[float] | None = None,
+    trot_period: float | None = None,
+    trot_phase_offsets: list[float] | None = None,
+    gait_velocity_threshold: float | None = None,
     terrain_sensor_cfgs: list[SceneEntityCfg] | None = None,
     p_des: float = 0.15,
+    walk_p_des: float | None = None,
+    trot_p_des: float | None = None,
+    walk_d_lower_clearance: float | None = None,
+    walk_d_upper_clearance: float | None = None,
+    trot_d_lower_clearance: float | None = None,
+    trot_d_upper_clearance: float | None = None,
     d_lower_gait: float = -0.6,
     d_lower_clearance: float = -0.08,
     d_upper_clearance: float = 1.0,
@@ -178,7 +270,18 @@ def barrier_style_foot_clearance(
     terrain_height: float = 0.0,
 ) -> torch.Tensor:
     """Foot clearance barrier l_i (Eq. 3, Table I). Uses flat terrain_height when no height scan."""
-    g, _, _ = _get_gait_state(env, period=period, phase_offsets=phase_offsets, sensor_cfg=sensor_cfg)
+    g, _, _ = _get_gait_state(
+        env,
+        sensor_cfg=sensor_cfg,
+        period=period,
+        phase_offsets=phase_offsets,
+        walk_period=walk_period,
+        walk_phase_offsets=walk_phase_offsets,
+        trot_period=trot_period,
+        trot_phase_offsets=trot_phase_offsets,
+        gait_velocity_threshold=gait_velocity_threshold,
+        command_name=command_name,
+    )
     asset: Articulation = env.scene[asset_cfg.name]
     foot_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
     if terrain_sensor_cfgs is None or len(terrain_sensor_cfgs) != foot_z.shape[1]:
@@ -189,18 +292,59 @@ def barrier_style_foot_clearance(
     moving_mask = _command_active(env, command_name, command_threshold)
     stand_mask = _stand_mode(env, command_name, stand_threshold)
 
+    if gait_velocity_threshold is not None:
+        if (
+            walk_p_des is None
+            or trot_p_des is None
+            or walk_d_lower_clearance is None
+            or walk_d_upper_clearance is None
+            or trot_d_lower_clearance is None
+            or trot_d_upper_clearance is None
+        ):
+            raise ValueError(
+                "Velocity-selective clearance requires walk/trot p_des and clearance bounds."
+            )
+        use_trot = command_uses_trot_gait(env, command_name, gait_velocity_threshold)
+        ref = foot_z[:, 0]
+        p_des_env = _per_gait_env_scalars(use_trot, walk_value=walk_p_des, trot_value=trot_p_des, reference=ref)
+        d_lower_clearance_env = _per_gait_env_scalars(
+            use_trot,
+            walk_value=walk_d_lower_clearance,
+            trot_value=trot_d_lower_clearance,
+            reference=ref,
+        )
+        d_upper_clearance_env = _per_gait_env_scalars(
+            use_trot,
+            walk_value=walk_d_upper_clearance,
+            trot_value=trot_d_upper_clearance,
+            reference=ref,
+        )
+    else:
+        ref = foot_z[:, 0]
+        p_des_env = torch.full_like(ref, p_des)
+        d_lower_clearance_env = torch.full_like(ref, d_lower_clearance)
+        d_upper_clearance_env = torch.full_like(ref, d_upper_clearance)
+
     reward = torch.zeros(env.num_envs, device=env.device)
     swing_mask = (g <= d_lower_gait) & moving_mask[:, None].bool()
     for i in range(foot_z.shape[1]):
         # l_i = p_i - (max terrain sample + p_des); flat terrain => max sample = terrain_height.
-        l_i = foot_z[:, i] - (terrain_heights[:, i] + p_des)
+        l_i = foot_z[:, i] - (terrain_heights[:, i] + p_des_env)
         l_i = torch.where(swing_mask[:, i], l_i, torch.zeros_like(l_i))
         reward = reward + barrier_soft_interval(
-            l_i, d_lower=d_lower_clearance, d_upper=d_upper_clearance, delta=delta, alpha=alpha
+            l_i,
+            d_lower=d_lower_clearance_env,
+            d_upper=d_upper_clearance_env,
+            delta=delta,
+            alpha=alpha,
         )
         stand_l_i = -(foot_z[:, i] - terrain_heights[:, i])
         reward = reward + stand_mask * barrier_soft_interval(
-            stand_l_i, d_lower=d_lower_clearance, d_upper=d_upper_clearance, delta=delta, alpha=alpha
+            stand_l_i,
+            d_lower=d_lower_clearance_env,
+            d_upper=d_upper_clearance_env,
+            delta=delta,
+            alpha=alpha,
         )
     reward *= _upright_scale(env)
     return reward

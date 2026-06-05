@@ -52,3 +52,6 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
   --cmd_x 1.0 \
   --cmd_y 0.0 \
   --cmd_yaw 0.0
+
+./isaaclab.sh -p /home/dl/wy/barrier_main/robot_lab/scripts/reinforcement_learning/rsl_rl/train.py  --task RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-v0 --headless --device cuda:0 --logger wandb --log_project_name barrier_waq --resume --load_run 2026-06-04_11-55-59 --checkpoint model_1700.pt
+
