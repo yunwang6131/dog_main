@@ -51,6 +51,75 @@ def terrain_levels_vel_ratio(
     return torch.mean(terrain.terrain_levels.float())
 
 
+def terrain_levels_vel_tracking_stability(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    move_up_fraction: float = 0.60,
+    move_down_fraction: float = 0.40,
+    stand_command_threshold: float = 0.08,
+    lin_vel_error_threshold: float = 0.35,
+    ang_vel_error_threshold: float = 0.50,
+    gravity_xy_threshold: float = 0.45,
+) -> torch.Tensor:
+    """Terrain curriculum that gates terrain progression on:
+    1. Distance traveled (original criterion)
+    2. Velocity tracking accuracy (lin_vel + ang_vel errors)
+    3. Postural stability (projected_gravity xy component)
+
+    Upgrade requires: good distance + good tracking + stable posture.
+    Downgrade triggers on: bad distance OR bad tracking OR unstable posture.
+    Stand/near-zero commands skip all checks.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    terrain: TerrainImporter = env.scene.terrain
+    command = env.command_manager.get_command("base_velocity")
+
+    # 1. Distance completion (original logic)
+    distance = torch.norm(
+        asset.data.root_pos_w[env_ids, :2] - env.scene.env_origins[env_ids, :2],
+        dim=1,
+    )
+    cmd_xy = command[env_ids, :2]
+    cmd_speed = torch.norm(cmd_xy, dim=1)
+    expected_distance = cmd_speed * env.max_episode_length_s
+    moving = cmd_speed > stand_command_threshold
+
+    distance_good = distance > expected_distance * move_up_fraction
+    distance_bad = distance < expected_distance * move_down_fraction
+
+    # 2. Velocity tracking error
+    root_lin_vel_b = asset.data.root_lin_vel_b[env_ids, :2]
+    root_ang_vel_b = asset.data.root_ang_vel_b[env_ids, 2]
+
+    lin_vel_error = torch.norm(root_lin_vel_b - command[env_ids, :2], dim=1)
+    ang_vel_error = torch.abs(root_ang_vel_b - command[env_ids, 2])
+
+    tracking_good = (
+        (lin_vel_error < lin_vel_error_threshold)
+        & (ang_vel_error < ang_vel_error_threshold)
+    )
+    tracking_bad = (
+        (lin_vel_error > lin_vel_error_threshold * 1.8)
+        | (ang_vel_error > ang_vel_error_threshold * 1.8)
+    )
+
+    # 3. Postural stability via projected_gravity xy magnitude
+    gravity_xy = torch.norm(asset.data.projected_gravity_b[env_ids, :2], dim=1)
+    stable = gravity_xy < gravity_xy_threshold
+    unstable = gravity_xy > gravity_xy_threshold * 1.4
+
+    # 4. Move up: all criteria must be met
+    move_up = moving & distance_good & tracking_good & stable
+
+    # 5. Move down: any criterion fails badly
+    move_down = moving & (distance_bad | tracking_bad | unstable)
+    move_down &= ~move_up
+
+    terrain.update_env_origins(env_ids, move_up, move_down)
+    return torch.mean(terrain.terrain_levels.float())
+
+
 def command_levels_lin_vel(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],

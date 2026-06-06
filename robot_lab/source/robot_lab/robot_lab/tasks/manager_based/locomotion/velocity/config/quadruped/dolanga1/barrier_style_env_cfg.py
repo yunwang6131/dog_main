@@ -376,6 +376,19 @@ def _tune_sim2real_robustness(cfg) -> None:
     cfg.curriculum.command_levels_lin_vel = None
     cfg.curriculum.command_levels_ang_vel = None
 
+    # 地形升级加上速度跟踪 + 姿态稳定条件，不只靠位移距离
+    cfg.curriculum.terrain_levels = CurrTerm(
+        func=mdp.terrain_levels_vel_tracking_stability,
+        params={
+            "move_up_fraction": 0.60,
+            "move_down_fraction": 0.40,
+            "stand_command_threshold": 0.08,
+            "lin_vel_error_threshold": 0.35,
+            "ang_vel_error_threshold": 0.50,
+            "gravity_xy_threshold": 0.45,
+        },
+    )
+
     cfg.events.randomize_right_leg_actuator_gains = EventTerm(
         func=mdp.scale_actuator_gains_for_joints,
         mode="reset",
