@@ -28,6 +28,8 @@ class DolangH1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner_fr_foot.prim_path = "{ENV_REGEX_NS}/Robot/right_foot_link"
         self.scene.height_scanner_hl_foot.prim_path = "{ENV_REGEX_NS}/Robot/left_foot_link"
         self.scene.height_scanner_hr_foot.prim_path = "{ENV_REGEX_NS}/Robot/right_foot_link"
+        self.scene.front_depth_camera = None
+        self.scene.front_depth_camera_flip = None
 
         self.observations.base_ang_vel = copy.deepcopy(self.observations.base_ang_vel_with_noise)
         self.observations.projected_gravity = copy.deepcopy(self.observations.projected_gravity_with_noise)

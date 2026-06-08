@@ -73,6 +73,7 @@ python3 scripts/reinforcement_learning/rsl_rl/play.py \
   --num_envs 16 \
   --device cuda:0
 
+# humanoid 继续之前的接着训练
 python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0 \
   --headless \
@@ -94,3 +95,32 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
 PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_no_exF_viewer.py \
   --config deploy_mujoco/configs/dolangh1.yaml \
   --cmd_x 0.3 --cmd_y 0.0 --cmd_yaw 0.0
+
+# humanoid rough
+python3 scripts/reinforcement_learning/rsl_rl/train.py \
+  --task RobotLab-Isaac-Velocity-Rough-DolangH1-v0 \
+  --headless \
+  --device cuda:0 \
+  --num_envs 512 \
+  --logger wandb \
+  --log_project_name humanoid \
+  --max_iterations 20000
+
+  python3 scripts/reinforcement_learning/rsl_rl/play.py \
+  --task RobotLab-Isaac-Velocity-Rough-DolangH1-v0 \
+  --num_envs 64 \
+  --device cuda:0
+
+  python3 scripts/reinforcement_learning/rsl_rl/play.py   --task RobotLab-Isaac-Velocity-Rough-DolangH1-v0   --num_envs 64   --device cuda:0 --checkpoint /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolangh1_rough_dreamwaq/2026-06-06_22-29-34/model_12000.pt
+
+# humanoid 继续之前的接着训练
+python3 scripts/reinforcement_learning/rsl_rl/train.py \
+  --task RobotLab-Isaac-Velocity-Rough-DolangH1-v0 \
+  --headless \
+  --device cuda:0 \
+  --num_envs 512 \
+  --logger wandb \
+  --log_project_name humanoid \
+  --resume \
+  --load_run 2026-06-06_11-46-23 \
+  --checkpoint model_7200.pt
