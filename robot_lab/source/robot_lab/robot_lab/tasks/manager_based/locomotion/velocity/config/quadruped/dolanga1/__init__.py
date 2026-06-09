@@ -23,7 +23,7 @@ gym.register(
 # 实际用这个
 gym.register(
     id="RobotLab-Isaac-Velocity-Rough-Dolanga1-DreamWaQ-v0",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    entry_point="robot_lab.envs.action_delay_env:ActionDelayManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.rough_env_cfg:Dolanga1RoughEnvCfg",
@@ -45,7 +45,7 @@ gym.register(
 
 gym.register(
     id="RobotLab-Isaac-Velocity-Flat-Dolanga1-DreamWaQ-v0",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    entry_point="robot_lab.envs.action_delay_env:ActionDelayManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.flat_env_cfg:Dolanga1FlatEnvCfg",

@@ -1,7 +1,7 @@
 # Copyright (c) 2024-2026 Ziqi Fan
 # SPDX-License-Identifier: Apache-2.0
 
-"""Splits ``reward_buf`` into standard vs barrier streams (by reward term prefix) for dual-critic PPO."""
+"""Manager-based RL env with optional per-environment action delay."""
 
 from __future__ import annotations
 
@@ -11,13 +11,8 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.envs.common import VecEnvStepReturn
 
 
-class BarrierRewardSplitManagerBasedRLEnv(ManagerBasedRLEnv):
-    """Same as :class:`ManagerBasedRLEnv`, but writes ``extras['reward_standard'/'reward_barrier']``.
-
-    Barrier terms are any active reward keys whose names start with one of the prefixes configured on
-    :attr:`~ManagerBasedRLEnv.cfg`\ ``barrier_reward_term_prefixes`` (defaults to ``("barrier_style_",)``
-    accessed via ``getattr`` when absent).
-    """
+class ActionDelayManagerBasedRLEnv(ManagerBasedRLEnv):
+    """Same as ManagerBasedRLEnv, but delays processed actions when cfg enables it."""
 
     def __init__(self, cfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
@@ -77,23 +72,7 @@ class BarrierRewardSplitManagerBasedRLEnv(ManagerBasedRLEnv):
         super()._reset_idx(env_ids)
         self._reset_action_delay(env_ids)
 
-    def _attach_barrier_reward_splits(self) -> None:
-        prefixes: tuple[str, ...] = getattr(self.cfg, "barrier_reward_term_prefixes", ("barrier_style_",))
-        rm = self.reward_manager
-        names = rm.active_terms
-        idxs = [i for i, n in enumerate(names) if any(n.startswith(p) for p in prefixes)]
-        dt = self.step_dt
-        if idxs:
-            idx_t = torch.as_tensor(idxs, device=rm._reward_buf.device, dtype=torch.long)  # noqa: SLF001
-            r_bar = rm._step_reward.index_select(1, idx_t).sum(dim=-1) * dt  # noqa: SLF001
-        else:
-            r_bar = torch.zeros_like(rm._reward_buf)  # noqa: SLF001
-        r_std = self.reward_buf - r_bar
-        self.extras["reward_standard"] = r_std.detach()
-        self.extras["reward_barrier"] = r_bar.detach()
-
     def step(self, action: torch.Tensor) -> VecEnvStepReturn:
-        # Derived from Isaac Lab ManagerBasedRLEnv.step (BSD-3-Clause); insert after reward compute.
         self._apply_action_with_optional_delay(action)
 
         self.recorder_manager.record_pre_step()
@@ -118,7 +97,6 @@ class BarrierRewardSplitManagerBasedRLEnv(ManagerBasedRLEnv):
         self.reset_time_outs = self.termination_manager.time_outs
 
         self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
-        self._attach_barrier_reward_splits()
 
         if len(self.recorder_manager.active_terms) > 0:
             self.obs_buf = self.observation_manager.compute()

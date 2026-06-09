@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from isaaclab.utils import configclass
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import RayCasterCfg, patterns
@@ -45,8 +46,37 @@ def _enable_foot_height_scanners(cfg) -> None:
         getattr(cfg.scene, sensor_name).update_period = cfg.decimation * cfg.sim.dt
 
 
+def _tune_sim2real_robustness(cfg) -> None:
+    pose_range = cfg.events.randomize_reset_base.params["pose_range"]
+    pose_range["roll"] = (-0.08, 0.08)
+    pose_range["pitch"] = (-0.08, 0.08)
+
+    cfg.events.randomize_reset_joints.params["position_range"] = (1.0, 1.0)
+    cfg.events.randomize_reset_joints.params["velocity_range"] = (-0.02, 0.02)
+
+    cfg.events.randomize_actuator_gains.params["stiffness_distribution_params"] = (0.9, 1.1)
+    cfg.events.randomize_actuator_gains.params["damping_distribution_params"] = (0.9, 1.1)
+
+    push_event = getattr(cfg.events, "randomize_push_robot", None)
+    if push_event is not None:
+        push_event.interval_range_s = (6.0, 10.0)
+        push_event.params["velocity_range"] = {"x": (-0.3, 0.3), "y": (-0.3, 0.3)}
+
+    cfg.events.randomize_right_leg_actuator_gains = EventTerm(
+        func=mdp.scale_actuator_gains_for_joints,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "joint_names": ["RF_.*", "RH_.*"],
+            "stiffness_scale_range": (0.85, 0.98),
+            "damping_scale_range": (0.85, 0.98),
+        },
+    )
+
+
 @configclass
 class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
+    action_delay_env_steps_range: tuple[int, int] = (0, 1)
     base_link_name = "base_link"
     # Allow both explicit foot links and merged-fixed-joint fallback on calf links.
     foot_link_name = ".*_foot_link"
@@ -164,6 +194,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.events.randomize_actuator_gains.params["distribution"] = "log_uniform"
         self.events.randomize_reset_joints.params["position_range"] = (0.9, 1.1)
         self.events.randomize_reset_joints.params["velocity_range"] = (-0.1, 0.1)
+        _tune_sim2real_robustness(self)
         # ------------------------------Rewards------------------------------
         # General
         self.rewards.is_terminated.weight = 0

@@ -1,6 +1,6 @@
 # Copyright (c) 2024-2026 Ziqi Fan
 # SPDX-License-Identifier: Apache-2.0
 
-from .barrier_reward_split_env import BarrierRewardSplitManagerBasedRLEnv
+from .action_delay_env import ActionDelayManagerBasedRLEnv
 
-__all__ = ["BarrierRewardSplitManagerBasedRLEnv"]
+__all__ = ["ActionDelayManagerBasedRLEnv"]
