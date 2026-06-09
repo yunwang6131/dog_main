@@ -121,7 +121,7 @@ class Sim2SimRunner:
         if not cfg.policy_path.endswith(".pt"):
             raise ValueError(
                 "Dolanga1 sim2sim expects merged TorchScript policy_full.pt. "
-                "Export with export_barrier_dreamwaq_merged_jit_from_runner and pass that file as --policy."
+                "Export with export_dreamwaq_merged_jit_from_runner and pass that file as --policy."
             )
         self._torch_policy = torch.jit.load(cfg.policy_path, map_location="cpu").eval()
         self.input_shape = ["history", "current"]

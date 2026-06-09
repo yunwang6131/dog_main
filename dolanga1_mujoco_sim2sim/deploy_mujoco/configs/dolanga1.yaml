@@ -8,7 +8,7 @@ init_base_height: 0.50
 
 # Set these before running
 mujoco_model_path: /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim/resources/Dolanga1.xml
-policy_path: /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_barrier_dual/<run>/exported/policy_full.pt
+policy_path: /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolanga1_rough_dreamwaq/<run>/exported/policy_full.pt
 
 # Commanded velocity [vx, vy, wz]
 cmd: [1.0, 0.0, 0.0]
@@ -32,7 +32,7 @@ joint_names:
 q_default: [0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50, 0.0, 0.70, -1.50]
 
 # Per-joint action scales from training config
-action_scale: [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25]
+action_scale: [0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25, 0.4, 0.25, 0.25]
 
 # PD gains used for torque conversion in sim2sim
 kp: [80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0, 80.0]

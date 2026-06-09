@@ -4,9 +4,13 @@
 from isaaclab.utils import configclass
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.sensors import RayCasterCfg, patterns
 
-from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, \
-    add_history_term
+from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import (
+    LocomotionVelocityRoughEnvCfg,
+    ObservationsCfg,
+    add_history_term,
+)
 import robot_lab.tasks.manager_based.locomotion.velocity.mdp as mdp
 import copy 
 
@@ -14,6 +18,31 @@ import copy
 # Pre-defined configs
 ##
 from robot_lab.assets.dolanga import DOLANGA1_CFG  # isort: skip
+
+
+def _make_foot_height_scanner(prim_path: str) -> RayCasterCfg:
+    return RayCasterCfg(
+        prim_path=prim_path,
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 2.0)),
+        ray_alignment="yaw",
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=(0.1, 0.1)),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+
+
+def _enable_foot_height_scanners(cfg) -> None:
+    cfg.scene.height_scanner_fl_foot = _make_foot_height_scanner("{ENV_REGEX_NS}/Robot/LF_foot_link")
+    cfg.scene.height_scanner_fr_foot = _make_foot_height_scanner("{ENV_REGEX_NS}/Robot/RF_foot_link")
+    cfg.scene.height_scanner_hl_foot = _make_foot_height_scanner("{ENV_REGEX_NS}/Robot/LH_foot_link")
+    cfg.scene.height_scanner_hr_foot = _make_foot_height_scanner("{ENV_REGEX_NS}/Robot/RH_foot_link")
+    for sensor_name in (
+        "height_scanner_fl_foot",
+        "height_scanner_fr_foot",
+        "height_scanner_hl_foot",
+        "height_scanner_hr_foot",
+    ):
+        getattr(cfg.scene, sensor_name).update_period = cfg.decimation * cfg.sim.dt
 
 
 @configclass
@@ -40,22 +69,19 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         #self.scene.height_scanner_base.prim_path = "{ENV_REGEX_NS}/Robot/" + self.base_link_name
         self.scene.height_scanner = None
         self.scene.height_scanner_base = None
-        self.scene.height_scanner_fl_foot = None
-        self.scene.height_scanner_fr_foot = None
-        self.scene.height_scanner_hl_foot = None
-        self.scene.height_scanner_hr_foot = None
+        _enable_foot_height_scanners(self)
         self.scene.front_depth_camera = None
         self.scene.front_depth_camera_flip = None
         # self.scene.terrain.max_init_terrain_level = 0
         terrain_generator = self.scene.terrain.terrain_generator
-        terrain_generator.sub_terrains["flat"].proportion = 0.10 #0.10
-        terrain_generator.sub_terrains["pyramid_stairs"].proportion = 0.1 #0.25
-        terrain_generator.sub_terrains["pyramid_stairs"].step_height_range = (0.04, 0.25) #0.16
-        terrain_generator.sub_terrains["pyramid_stairs_inv"].proportion = 0.4  #0.25
-        terrain_generator.sub_terrains["pyramid_stairs_inv"].step_height_range = (0.04, 0.25)
-        terrain_generator.sub_terrains["boxes"].proportion = 0.2 #0.25
+        terrain_generator.sub_terrains["flat"].proportion = 0.25
+        terrain_generator.sub_terrains["pyramid_stairs"].proportion = 0.15
+        terrain_generator.sub_terrains["pyramid_stairs"].step_height_range = (0.04, 0.16)
+        terrain_generator.sub_terrains["pyramid_stairs_inv"].proportion = 0.15
+        terrain_generator.sub_terrains["pyramid_stairs_inv"].step_height_range = (0.04, 0.16)
+        terrain_generator.sub_terrains["boxes"].proportion = 0.30
         terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.08)
-        terrain_generator.sub_terrains["random_rough"].proportion = 0.05
+        terrain_generator.sub_terrains["random_rough"].proportion = 0.0
         terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
         terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
         terrain_generator.sub_terrains["hf_pyramid_slope"].proportion = 0.075
@@ -83,7 +109,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.observations.joint_vel_with_noise.joint_vel_rel.params["asset_cfg"].joint_names = self.joint_names
 
         self.observations.height_scan = None
-        self.observations.height_scan_feet = None
+        self.observations.height_scan_feet = ObservationsCfg.HeightScanFeetCfg()
 
         # ------------------------------history-----------------------------
         history_length = 10
@@ -243,6 +269,6 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # ------------------------------Commands------------------------------
         # self.commands.base_velocity.ranges.lin_vel_x = (0, 2.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (0, 0)
-        self.commands.base_velocity.ranges.lin_vel_x = (-0.5, 1.5) #1.0
+        self.commands.base_velocity.ranges.lin_vel_x = (0, 0.8) #1.0
         self.commands.base_velocity.ranges.lin_vel_y = (-0.5, 0.5) #(-0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)

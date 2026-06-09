@@ -20,6 +20,18 @@ gym.register(
     },
 )
 
+# 实际用这个
+gym.register(
+    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-DreamWaQ-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.rough_env_cfg:Dolanga1RoughEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_dreamwaq_cfg:Dolanga1RoughDreamWaQRunnerCfg",
+        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
+    },
+)
+
 gym.register(
     id="RobotLab-Isaac-Velocity-Rough-Dolanga1-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
@@ -30,69 +42,14 @@ gym.register(
         "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
     },
 )
-# 实际用这个
-gym.register(
-    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-v0",
-    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1RoughBarrierStyleEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1RoughBarrierDualRunnerCfg",
-        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
-    },
-)
-# debug的不用管
-gym.register(
-    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-Debug-v0",
-    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1RoughBarrierStyleEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1RoughBarrierDualDebugRunnerCfg",
-        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
-    },
-)
 
 gym.register(
-    id="RobotLab-Isaac-Velocity-Rough-Dolanga1-BarrierDual-Paper-v0",
-    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
+    id="RobotLab-Isaac-Velocity-Flat-Dolanga1-DreamWaQ-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1RoughBarrierStyleEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1RoughBarrierDualPaperRunnerCfg",
-        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1RoughTrainerCfg",
-    },
-)
-
-gym.register(
-    id="RobotLab-Isaac-Velocity-Flat-Dolanga1-BarrierDual-v0",
-    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1FlatBarrierStyleEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1FlatBarrierDualRunnerCfg",
-        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1FlatTrainerCfg",
-    },
-)
-
-gym.register(
-    id="RobotLab-Isaac-Velocity-Flat-Dolanga1-BarrierDual-Debug-v0",
-    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1FlatBarrierStyleEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1FlatBarrierDualDebugRunnerCfg",
-        "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1FlatTrainerCfg",
-    },
-)
-
-gym.register(
-    id="RobotLab-Isaac-Velocity-Flat-Dolanga1-BarrierDual-Paper-v0",
-    entry_point="robot_lab.envs.barrier_reward_split_env:BarrierRewardSplitManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.barrier_style_env_cfg:Dolanga1FlatBarrierStyleEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_barrier_dual_cfg:Dolanga1FlatBarrierDualPaperRunnerCfg",
+        "env_cfg_entry_point": f"{__name__}.flat_env_cfg:Dolanga1FlatEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_dreamwaq_cfg:Dolanga1FlatDreamWaQRunnerCfg",
         "cusrl_cfg_entry_point": f"{agents.__name__}.cusrl_ppo_cfg:Dolanga1FlatTrainerCfg",
     },
 )

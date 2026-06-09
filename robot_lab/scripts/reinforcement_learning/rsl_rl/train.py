@@ -61,7 +61,7 @@ import platform
 
 from packaging import version
 
-# BarrierDual / DreamWaQ use actor+critic model configs (rsl-rl >= 4.0). Isaac Lab 5.1 targets 5.0.1.
+# DreamWaQ uses actor+critic model configs (rsl-rl >= 4.0). Isaac Lab 5.1 targets 5.0.1.
 RSL_RL_VERSION = "4.0.0"
 installed_version = metadata.version("rsl-rl-lib")
 if version.parse(installed_version) < version.parse(RSL_RL_VERSION):
