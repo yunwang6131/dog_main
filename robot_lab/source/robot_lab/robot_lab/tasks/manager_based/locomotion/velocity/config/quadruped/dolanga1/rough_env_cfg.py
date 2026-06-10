@@ -254,7 +254,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.feet_contact.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_contact_without_cmd.weight = 0.1
         self.rewards.feet_contact_without_cmd.params["sensor_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_stumble.weight = -1.0
+        self.rewards.feet_stumble.weight = -0.5 # -1.0
         self.rewards.feet_stumble.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.feet_slide.weight = -0.3
         self.rewards.feet_slide.params["sensor_cfg"].body_names = [self.foot_link_name]
