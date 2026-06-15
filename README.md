@@ -55,3 +55,6 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
 
 ./isaaclab.sh -p /home/dl/wy/barrier_main/robot_lab/scripts/reinforcement_learning/rsl_rl/train.py  --task RobotLab-Isaac-Velocity-Rough-Dolanga1-DreamWaQ-v0 --headless --device cuda:0 --logger wandb --log_project_name dreamwaq --resume --load_run 2026-06-04_11-55-59 --checkpoint model_1700.pt
 
+# 也可以用tensorboard看
+
+tensorboard --logdir /home/dl/sim/IsaacLab/logs/rsl_rl/dolanga1_rough_dreamwaq/2026-06-10_09-42-43

@@ -29,3 +29,10 @@ class MeshGapTerrainCfg(SubTerrainBaseCfg):
     platform_width: float = 2.0
     gap_width_range: tuple[float, float] = (0.2, 0.5)
     gap_deepth : float = 0.5
+
+
+@configclass
+class MeshSim2SimSlideCourseCfg(SubTerrainBaseCfg):
+    """Fixed MuJoCo sim2sim slide.xml course (flat run-up + ramp + stairs)."""
+
+    function = mesh_terrains.sim2sim_slide_course

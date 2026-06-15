@@ -59,6 +59,7 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
             platform_width=2.5,
             height_range=(0.1, 0.6),
         ),
+        "sim2sim_slide": terrain_gen.MeshSim2SimSlideCourseCfg(proportion=0.0),
     },
 )
 """Rough terrains configuration."""

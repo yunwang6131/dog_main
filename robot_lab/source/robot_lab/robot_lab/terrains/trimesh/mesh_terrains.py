@@ -1,14 +1,29 @@
 from __future__ import annotations
 
 import numpy as np
-import torch
 import trimesh
-from typing import TYPE_CHECKING, Tuple, List
+from typing import TYPE_CHECKING
 
 from isaaclab.terrains.trimesh.utils import make_border
 
 if TYPE_CHECKING:
     from . import mesh_terrains_cfg
+
+_GROUND_THICK = 0.05
+
+
+def _make_box(
+    half_extents: tuple[float, float, float],
+    center: tuple[float, float, float],
+    euler_xyz: tuple[float, float, float] | None = None,
+) -> trimesh.Trimesh:
+    """Create an axis-aligned or rotated box (MuJoCo half-extents and body-frame euler xyz)."""
+    transform = trimesh.transformations.translation_matrix(center)
+    if euler_xyz is not None:
+        rot = trimesh.transformations.euler_matrix(*euler_xyz, axes="rxyz")
+        transform = transform @ rot
+    extents = (2.0 * half_extents[0], 2.0 * half_extents[1], 2.0 * half_extents[2])
+    return trimesh.creation.box(extents=extents, transform=transform)
 
 
 def flat_high_box(
@@ -132,3 +147,55 @@ def gap_terrain(
     origin = np.array([terrain_center[0], terrain_center[1], 0.0])
 
     return meshes_list, origin
+
+
+def sim2sim_slide_course(
+    difficulty: float, cfg: "mesh_terrains_cfg.MeshSim2SimSlideCourseCfg"
+) -> tuple[list[trimesh.Trimesh], np.ndarray]:
+    """Fixed sim2sim slide course from dolanga1_mujoco_sim2sim/resources/slide.xml."""
+    del difficulty  # fixed geometry; difficulty is unused
+
+    size_x, size_y = cfg.size
+    cy = 0.5 * size_y
+    meshes: list[trimesh.Trimesh] = []
+
+    meshes.append(
+        _make_box(
+            (0.5 * size_x, 0.5 * size_y, 0.5 * _GROUND_THICK),
+            (0.5 * size_x, cy, -0.5 * _GROUND_THICK),
+        )
+    )
+
+    # ramp -> platform -> upstairs -> top -> downstairs -> ramp2 (world x matches slide.xml)
+    meshes.append(_make_box((2.0, 3.0, 0.05), (3.0, cy, 0.0), (0.0, -0.3, 0.0)))
+    meshes.append(_make_box((0.8, 3.0, 0.05), (5.7, cy, 0.6)))
+
+    up_stair_specs = [
+        (0.3, 0.71, (0.15, 3.0, 0.10)),
+        (0.6, 0.91, (0.15, 3.0, 0.10)),
+        (0.9, 1.11, (0.15, 3.0, 0.10)),
+        (1.2, 1.31, (0.15, 3.0, 0.10)),
+        (1.5, 1.51, (0.15, 3.0, 0.10)),
+    ]
+    for local_x, local_z, half_size in up_stair_specs:
+        meshes.append(_make_box(half_size, (6.2 + local_x, cy, local_z)))
+
+    meshes.append(_make_box((1.1, 3.0, 0.05), (8.9, cy, 1.56)))
+
+    down_stair_specs = [
+        (0.3, 1.44),
+        (0.6, 1.34),
+        (0.9, 1.24),
+        (1.2, 1.14),
+        (1.5, 1.04),
+        (1.8, 0.94),
+        (2.1, 0.84),
+        (2.4, 0.74),
+    ]
+    for local_x, local_z in down_stair_specs:
+        meshes.append(_make_box((0.15, 3.0, 0.05), (9.8 + local_x, cy, local_z)))
+
+    meshes.append(_make_box((2.0, 3.0, 0.05), (14.2, cy, 0.1), (0.0, 0.3, 0.0)))
+
+    origin = np.array([1.5, cy, 0.0], dtype=np.float32)
+    return meshes, origin

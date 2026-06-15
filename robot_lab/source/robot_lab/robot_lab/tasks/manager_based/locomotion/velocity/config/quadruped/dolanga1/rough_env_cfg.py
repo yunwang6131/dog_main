@@ -46,6 +46,24 @@ def _enable_foot_height_scanners(cfg) -> None:
         getattr(cfg.scene, sensor_name).update_period = cfg.decimation * cfg.sim.dt
 
 
+def _apply_dolanga1_terrain_mesh_columns(terrain_generator) -> None:
+    """Column layout for terrain mesh generation (Phase B capacity: 60% sim2sim_slide columns)."""
+    terrain_generator.size = (20.0, 20.0)
+    terrain_generator.sub_terrains["sim2sim_slide"].proportion = 0.60
+    terrain_generator.sub_terrains["flat"].proportion = 0.10
+    terrain_generator.sub_terrains["pyramid_stairs"].proportion = 0.06
+    terrain_generator.sub_terrains["pyramid_stairs"].step_height_range = (0.04, 0.20)
+    terrain_generator.sub_terrains["pyramid_stairs_inv"].proportion = 0.06
+    terrain_generator.sub_terrains["pyramid_stairs_inv"].step_height_range = (0.04, 0.20)
+    terrain_generator.sub_terrains["boxes"].proportion = 0.08
+    terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.08)
+    terrain_generator.sub_terrains["random_rough"].proportion = 0.0
+    terrain_generator.sub_terrains["hf_pyramid_slope"].proportion = 0.02
+    terrain_generator.sub_terrains["hf_pyramid_slope"].slope_range = (0.0, 0.25)
+    terrain_generator.sub_terrains["hf_pyramid_slope_inv"].proportion = 0.02
+    terrain_generator.sub_terrains["hf_pyramid_slope_inv"].slope_range = (0.0, 0.25)
+
+
 def _tune_sim2real_robustness(cfg) -> None:
     pose_range = cfg.events.randomize_reset_base.params["pose_range"]
     pose_range["roll"] = (-0.08, 0.08)
@@ -104,20 +122,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.front_depth_camera_flip = None
         # self.scene.terrain.max_init_terrain_level = 0
         terrain_generator = self.scene.terrain.terrain_generator
-        terrain_generator.sub_terrains["flat"].proportion = 0.25
-        terrain_generator.sub_terrains["pyramid_stairs"].proportion = 0.15
-        terrain_generator.sub_terrains["pyramid_stairs"].step_height_range = (0.04, 0.16)
-        terrain_generator.sub_terrains["pyramid_stairs_inv"].proportion = 0.15
-        terrain_generator.sub_terrains["pyramid_stairs_inv"].step_height_range = (0.04, 0.16)
-        terrain_generator.sub_terrains["boxes"].proportion = 0.30
-        terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.08)
-        terrain_generator.sub_terrains["random_rough"].proportion = 0.0
-        terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
-        terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
-        terrain_generator.sub_terrains["hf_pyramid_slope"].proportion = 0.075
-        terrain_generator.sub_terrains["hf_pyramid_slope"].slope_range = (0.0, 0.25)
-        terrain_generator.sub_terrains["hf_pyramid_slope_inv"].proportion = 0.075
-        terrain_generator.sub_terrains["hf_pyramid_slope_inv"].slope_range = (0.0, 0.25)
+        _apply_dolanga1_terrain_mesh_columns(terrain_generator)
 
 
         # ------------------------------Observations------------------------------
@@ -164,8 +169,9 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # ------------------------------Events------------------------------
         self.events.randomize_reset_base.params = {
             "pose_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
+                # Keep spawn on flat run-up for sim2sim_slide (origin at x=1.5 m).
+                "x": (-1.0, 0.5),
+                "y": (-1.0, 1.0),
                 "z": (0.0, 0.2),
                 "roll": (-0.05, 0.05),
                 "pitch": (-0.05, 0.05),
@@ -204,7 +210,7 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.ang_vel_xy_l2.weight = -0.1
         self.rewards.flat_orientation_l2.weight = -1.0
         self.rewards.base_height_l2.weight = 0
-        self.rewards.base_height_l2.params["target_height"] = 0.45
+        self.rewards.base_height_l2.params["target_height"] = 0.40   # 0.45
         self.rewards.base_height_l2.params["asset_cfg"].body_names = [self.base_link_name]
         self.rewards.body_lin_acc_l2.weight = 0
         self.rewards.body_lin_acc_l2.params["asset_cfg"].body_names = [self.base_link_name]
@@ -296,10 +302,17 @@ class Dolanga1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.curriculum.command_levels_ang_vel.params["range_multiplier"] = (0.2, 1.0)
         self.curriculum.command_levels_lin_vel = None
         self.curriculum.command_levels_ang_vel = None
+        self.curriculum.terrain_levels.func = mdp.terrain_levels_vel_slide_mix
+        self.curriculum.terrain_levels.params = {
+            "switch_level": 5.8,
+            "switch_down_level": 5.3,
+            "phase_a_slide_fraction": 0.20,
+            "phase_b_slide_fraction": 0.60,
+        }
 
         # ------------------------------Commands------------------------------
         # self.commands.base_velocity.ranges.lin_vel_x = (0, 2.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (0, 0)
-        self.commands.base_velocity.ranges.lin_vel_x = (0, 0.8) #1.0
+        self.commands.base_velocity.ranges.lin_vel_x = (-0.5, 1.5) #1.0
         self.commands.base_velocity.ranges.lin_vel_y = (-0.5, 0.5) #(-0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)
