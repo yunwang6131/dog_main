@@ -52,11 +52,11 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
   --cmd_x 1.0 \
   --cmd_y 0.0 \
   --cmd_yaw 0.0
-# humanoid 冒烟测试
+# H1 humanoid 冒烟测试
 
 HYDRA_FULL_ERROR=1 python3 scripts/reinforcement_learning/rsl_rl/train.py   --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0   --headless   --num_envs 16   --max_iterations 1   --device cuda:0 2>&1 | tee error.log
 
-# humanoid 训练
+# H1 humanoid 训练
 python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0 \
   --headless \
@@ -66,14 +66,14 @@ python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --max_iteration 20000 \
   --num_envs 1024
 
-# humanoid play
+# H1 humanoid play
 
 python3 scripts/reinforcement_learning/rsl_rl/play.py \
   --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0 \
   --num_envs 16 \
   --device cuda:0
 
-# humanoid 继续之前的接着训练
+# H1 humanoid 继续之前的接着训练
 python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --task RobotLab-Isaac-Velocity-Flat-DolangH1-v0 \
   --headless \
@@ -85,7 +85,7 @@ python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --load_run 2026-06-04_15-56-05 \
   --checkpoint model_9800.pt
 
-# humanoid sim2sim
+# H1 humanoid sim2sim
 
 cd /home/wangyun/dog_main_test_barrier/dolanga1_mujoco_sim2sim
 PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_dolanga1_trot_viewer.py \
@@ -96,7 +96,7 @@ PYTHONPATH=. python3 deploy_mujoco_viewer/sim2sim_no_exF_viewer.py \
   --config deploy_mujoco/configs/dolangh1.yaml \
   --cmd_x 0.3 --cmd_y 0.0 --cmd_yaw 0.0
 
-# humanoid rough
+# H1 humanoid rough
 python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --task RobotLab-Isaac-Velocity-Rough-DolangH1-v0 \
   --headless \
@@ -113,7 +113,7 @@ python3 scripts/reinforcement_learning/rsl_rl/train.py \
 
   python3 scripts/reinforcement_learning/rsl_rl/play.py   --task RobotLab-Isaac-Velocity-Rough-DolangH1-v0   --num_envs 64   --device cuda:0 --checkpoint /home/wangyun/dog_main_test_barrier/robot_lab/logs/rsl_rl/dolangh1_rough_dreamwaq/2026-06-06_22-29-34/model_12000.pt
 
-# humanoid 继续之前的接着训练
+# H1 humanoid 继续之前的接着训练
 python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --task RobotLab-Isaac-Velocity-Rough-DolangH1-v0 \
   --headless \
@@ -124,3 +124,47 @@ python3 scripts/reinforcement_learning/rsl_rl/train.py \
   --resume \
   --load_run 2026-06-06_11-46-23 \
   --checkpoint model_7200.pt
+
+# D2的smoke训练
+python3 scripts/reinforcement_learning/rsl_rl/train.py \
+  --task RobotLab-Isaac-Velocity-Flat-DolangD2-v0 \
+  --headless \
+  --num_envs 16 \
+  --max_iterations 1 \
+  --device cuda:0
+  --logger wandb \
+  --log_project_name dolang_D2
+
+# D2的play
+
+python3 scripts/reinforcement_learning/rsl_rl/play.py \
+  --task RobotLab-Isaac-Velocity-Rough-DolangD2-v0
+  --num_envs 64 \
+  --device cuda:0
+
+# D2的训练
+cd /home/wangyun/dolang_rl/robot_lab
+
+python3 scripts/reinforcement_learning/rsl_rl/train.py \
+  --task RobotLab-Isaac-Velocity-Rough-DolangD2-v0 \
+  --headless \
+  --device cuda:0 \
+  --num_envs 512 \
+  --logger wandb \
+  --log_project_name dolang_D2 \
+  --max_iterations 20000
+
+# D2继续训练
+cd /home/wangyun/dolang_rl/robot_lab
+
+python3 scripts/reinforcement_learning/rsl_rl/train.py \
+  --task RobotLab-Isaac-Velocity-Rough-DolangD2-v0 \
+  --headless \
+  --device cuda:0 \
+  --num_envs 512 \
+  --logger wandb \
+  --log_project_name dolang_D2 \
+  --max_iterations 20000 \
+  --resume \
+  --load_run 2026-06-15_02-21-15 \
+  --checkpoint model_6100.pt
