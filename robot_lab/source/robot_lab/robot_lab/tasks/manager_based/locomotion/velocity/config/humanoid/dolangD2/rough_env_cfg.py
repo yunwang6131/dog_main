@@ -58,11 +58,11 @@ class DolangD2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         self.actions.joint_pos.scale = {
             ".*_hip_pitch_joint": 0.32,
-            ".*_hip_roll_joint": 0.18,
-            ".*_hip_yaw_joint": 0.12,
+            ".*_hip_roll_joint": 0.12,
+            ".*_hip_yaw_joint": 0.08,
             ".*_knee_joint": 0.40,
             ".*_ankle_pitch_joint": 0.30,
-            ".*_ankle_roll_joint": 0.22,
+            ".*_ankle_roll_joint": 0.12,
             "truck_joint": 0.08,
             "neck_joint": 0.04,
             "head_joint": 0.04,
@@ -88,13 +88,13 @@ class DolangD2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.ang_vel_xy_l2.weight = -0.1
         self.rewards.flat_orientation_l2.weight = -1.0
         self.rewards.base_height_l2.weight = -1.0
-        self.rewards.base_height_l2.params["target_height"] = 0.88
+        self.rewards.base_height_l2.params["target_height"] = 0.90
         self.rewards.base_height_l2.params["asset_cfg"].body_names = [self.base_link_name]
         self.rewards.base_bounce_l2 = RewTerm(
             func=mdp.base_bounce_l2,
             weight=-0.5,
             params={
-                "target_height": 0.88,
+                "target_height": 0.90,
                 "height_deadband": 0.04,
                 "vertical_velocity_weight": 1.5,
                 "asset_cfg": SceneEntityCfg("robot"),
@@ -112,7 +112,12 @@ class DolangD2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.joint_vel_l2.weight = 0
         self.rewards.joint_acc_l2.weight = -1.25e-7
         self.rewards.joint_acc_l2.params["asset_cfg"].joint_names = [".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
-        self.rewards.create_joint_deviation_l1_rewterm("joint_deviation_hip_l1", -0.1, [".*hip_yaw.*", ".*hip_roll.*"])
+        self.rewards.create_joint_deviation_l1_rewterm("joint_deviation_hip_l1", -0.25, [".*hip_yaw.*", ".*hip_roll.*"])
+        self.rewards.create_joint_deviation_l1_rewterm(
+            "joint_deviation_ankle_roll_l1",
+            -0.2,
+            [".*ankle_roll.*"],
+        )
         self.rewards.create_joint_deviation_l1_rewterm(
             "joint_deviation_arms_l1",
             -0.05,
@@ -127,11 +132,11 @@ class DolangD2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.joint_vel_limits.weight = 0
         self.rewards.joint_power.weight = 0
         self.rewards.stand_still.weight = 0
-        self.rewards.joint_pos_penalty.weight = -0.15
+        self.rewards.joint_pos_penalty.weight = -0.4
         self.rewards.joint_mirror.weight = 0
         self.rewards.joint_mirror.params["mirror_joints"] = [["left_(hip|knee|ankle).*", "right_(hip|knee|ankle).*"]]
 
-        self.rewards.action_rate_l2.weight = -0.005
+        self.rewards.action_rate_l2.weight = -0.015
         self.rewards.action_mirror.weight = -0.02
         self.rewards.action_mirror.params["mirror_joints"] = [["left_(hip|knee|ankle).*", "right_(hip|knee|ankle).*"]]
 
@@ -161,21 +166,21 @@ class DolangD2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             },
         )
 
-        self.rewards.feet_air_time.weight = 1.0
+        self.rewards.feet_air_time.weight = 0.25
         self.rewards.feet_air_time.func = mdp.feet_air_time_positive_biped
-        self.rewards.feet_air_time.params["threshold"] = 0.4
+        self.rewards.feet_air_time.params["threshold"] = 0.25
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = [self.foot_link_name]
-        self.rewards.feet_contact.weight = 0
+        self.rewards.feet_contact.weight = -0.4
         self.rewards.feet_contact.params["expect_contact_num"] = 1
         self.rewards.feet_contact.params["sensor_cfg"].body_names = [self.foot_link_name]
         self.rewards.no_fly = RewTerm(
             func=mdp.no_fly,
-            weight=-0.5,
+            weight=-4.0,
             params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=[self.foot_link_name])},
         )
         self.rewards.no_flight = RewTerm(
             func=mdp.no_flight_biped,
-            weight=-0.5,
+            weight=-4.0,
             params={
                 "command_name": "base_velocity",
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[self.foot_link_name]),
@@ -183,7 +188,7 @@ class DolangD2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         )
         self.rewards.single_foot_contact = RewTerm(
             func=mdp.single_foot_contact,
-            weight=0.0,
+            weight=0.5,
             params={
                 "command_name": "base_velocity",
                 "command_threshold": 0.1,
